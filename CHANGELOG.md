@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — 1.3.0-dev
 
+### Changed
+- Add legacy-fallback path resolution for instrumentation logs. Existing `C:\CPC\logs\` (if present with `hands_meta*.jsonl` data) continues to be used; new installs use `cpc_paths::data_path("hands")` default. Resolved once at startup via `OnceLock`.
+
 ### Added
 - **`hands_health` MCP tool** — diagnostic health check exposing `cpc_paths::health_check()` (path resolution for Volumes, install, backups) plus browser, vision, and UIA subsystem probe results.
 - **`cpc-paths` dependency** (v0.1.0) — portable path discovery library, pinned to git tag.

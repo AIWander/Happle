@@ -1,4 +1,7 @@
-//! Instrumentation logger — writes rung attempts to C:\CPC\logs\hands_meta.jsonl.
+//! Instrumentation logger — writes rung attempts to hands_meta.jsonl.
+//! Log directory resolved via legacy-fallback:
+//!   1. C:\CPC\logs — if it exists with hands_meta data (Joe's machine)
+//!   2. cpc_paths::data_path("hands") — fresh installs
 //! One line per rung attempt, one aggregate line per call.
 //! Rotate daily at midnight, keep 7 days.
 //! Redaction: scrub 6-digit codes from args matching code|otp|2fa|verification fields.
@@ -7,26 +10,68 @@ use serde_json::{json, Value};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
-const LOG_DIR: &str = "C:\\CPC\\logs";
+const LEGACY_LOG_DIR: &str = r"C:\CPC\logs";
 const LOG_FILE: &str = "hands_meta.jsonl";
 const RETENTION_DAYS: u64 = 7;
 
+static LOG_DIR_RESOLVED: OnceLock<PathBuf> = OnceLock::new();
+
+/// Get the resolved log directory (resolved once at first call).
+fn log_dir() -> &'static PathBuf {
+    LOG_DIR_RESOLVED.get_or_init(|| {
+        _resolve_hands_log_dir(Path::new(LEGACY_LOG_DIR))
+            .unwrap_or_else(|_| PathBuf::from(LEGACY_LOG_DIR))
+    })
+}
+
+/// Resolve the hands log directory.
+/// 1. Legacy `C:\CPC\logs` — if it exists AND contains hands_meta data (Joe's machine).
+/// 2. `cpc_paths::data_path("hands")` — fresh installs.
+///
+/// Testable inner function — takes `legacy` as a parameter so tests can inject tempdirs.
+pub(crate) fn _resolve_hands_log_dir(legacy: &Path) -> anyhow::Result<PathBuf> {
+    if legacy.exists() && has_hands_log_data(legacy) {
+        return Ok(legacy.to_path_buf());
+    }
+    cpc_paths::data_path("hands")
+}
+
+/// Returns true if `dir` contains at least one hands_meta log file.
+/// An empty-but-existing legacy dir falls through to cpc-paths.
+pub(crate) fn has_hands_log_data(dir: &Path) -> bool {
+    if dir.join(LOG_FILE).exists() {
+        return true;
+    }
+    // Also check for rotated hands_meta_{date}.jsonl files
+    dir.read_dir()
+        .map(|mut d| {
+            d.any(|e| {
+                e.ok()
+                    .and_then(|e| e.file_name().into_string().ok())
+                    .map(|n| n.starts_with("hands_meta_") && n.ends_with(".jsonl"))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
+}
+
 /// Get the current log file path.
 fn log_path() -> PathBuf {
-    Path::new(LOG_DIR).join(LOG_FILE)
+    log_dir().join(LOG_FILE)
 }
 
 /// Get the rotated log file path for a given date.
 fn rotated_path(date: &str) -> PathBuf {
-    Path::new(LOG_DIR).join(format!("hands_meta_{}.jsonl", date))
+    log_dir().join(format!("hands_meta_{}.jsonl", date))
 }
 
 /// Write a single JSON line to the instrumentation log.
 /// Creates the log directory if it doesn't exist.
 fn write_line(line: &Value) {
     // Best-effort logging — never panic on log failure
-    let _ = fs::create_dir_all(LOG_DIR);
+    let _ = fs::create_dir_all(log_dir());
     let path = log_path();
 
     if let Ok(mut file) = OpenOptions::new()
@@ -218,7 +263,7 @@ pub fn rotate_if_needed() {
 
 /// Remove rotated log files older than RETENTION_DAYS.
 fn cleanup_old_logs() {
-    let dir = Path::new(LOG_DIR);
+    let dir = log_dir();
     if let Ok(entries) = fs::read_dir(dir) {
         let cutoff = chrono::Utc::now() - chrono::Duration::days(RETENTION_DAYS as i64);
         for entry in entries.flatten() {
@@ -246,6 +291,39 @@ fn cleanup_old_logs() {
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn test_legacy_path_wins() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        // Create hands_meta.jsonl — simulates Joe's machine
+        std::fs::write(dir.path().join("hands_meta.jsonl"), "").unwrap();
+
+        let result = _resolve_hands_log_dir(dir.path()).unwrap();
+        assert_eq!(result, dir.path(), "legacy dir with hands_meta.jsonl should be returned");
+    }
+
+    #[test]
+    fn test_no_legacy_falls_through() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        // Empty tempdir — no hands_meta files
+        assert!(
+            !has_hands_log_data(dir.path()),
+            "empty dir must not be detected as legacy hands log data"
+        );
+    }
+
+    #[test]
+    fn test_rotated_marker_detected() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("hands_meta_2026-04-14.jsonl"), "").unwrap();
+        assert!(has_hands_log_data(dir.path()), "rotated hands_meta_{{date}}.jsonl should be detected");
+    }
 
     #[test]
     fn test_redact_otp_field() {
