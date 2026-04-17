@@ -1,4 +1,4 @@
-# Hands MCP Server — Recommended CLAUDE.md Instructions
+# Hands MCP Server -- Recommended CLAUDE.md Instructions
 
 Drop the block between the fence markers into your CLAUDE.md (global or per-project)
 or Claude chat system prompt to get sane defaults when using the Hands MCP server.
@@ -8,15 +8,15 @@ or Claude chat system prompt to get sane defaults when using the Hands MCP serve
 ```markdown
 <!-- ======== BEGIN HANDS INSTRUCTIONS ======== -->
 
-## Hands MCP Server — Behavioral Defaults
+## Hands MCP Server -- Behavioral Defaults
 
 ### Escalation Ladder (always start cheap)
-When fetching web content, follow this order — stop at the first rung that works:
-1. `hands:browser_http_scrape` — raw HTTP, no browser. Use for static pages.
-2. `hands:browser_smart_browse` — JS-capable fetch, still no Chrome.
-3. `hands:browser_extract_content` — headless Chrome, returns clean text.
-4. `hands:browser_launch` + interactive tools — only when you need to click/fill/scroll.
-5. Vision (`hands:vision_screenshot_ocr`) — last resort, or for verification.
+When fetching web content, follow this order -- stop at the first rung that works:
+1. `hands:browser_http_scrape` -- raw HTTP, no browser. Use for static pages.
+2. `hands:browser_smart_browse` -- JS-capable fetch, still no Chrome.
+3. `hands:browser_extract_content` -- headless Chrome, returns clean text.
+4. `hands:browser_launch` + interactive tools -- only when you need to click/fill/scroll.
+5. Vision (`hands:vision_screenshot_ocr`) -- last resort, or for verification.
 
 Do NOT launch Chrome just to read a page. Try http_scrape first.
 
@@ -35,7 +35,7 @@ When you automate a browser flow that will be repeated:
 1. Complete the flow with browser tools.
 2. Call `browser_get_all_network` to capture HTTP traffic.
 3. Call `browser_learn_api` to extract API patterns from the traffic.
-4. Future runs: use `browser_http_scrape` with the discovered API endpoints — no Chrome needed.
+4. Future runs: use `browser_http_scrape` with the discovered API endpoints -- no Chrome needed.
 
 ### Vision = Verification, Not Perception
 Use vision tools (screenshot, OCR, template match) to **confirm** states, not to
@@ -53,7 +53,7 @@ processes waste memory and can block future launches.
 
 ### Stealth
 Only enable `stealth: true` on `browser_launch` when a site actively blocks headless
-browsers (403s, challenge pages, different content). Don't use it by default — it
+browsers (403s, challenge pages, different content). Don't use it by default -- it
 adds startup latency.
 
 <!-- ======== END HANDS INSTRUCTIONS ======== -->
@@ -63,7 +63,7 @@ adds startup latency.
 
 ## Notes for integration
 
-- The block above is self-contained — copy the fenced section as-is.
+- The block above is self-contained -- copy the fenced section as-is.
 - Works in `~/.claude/CLAUDE.md` (global), project `.claude/CLAUDE.md`, or Claude
   chat/Cowork system preferences.
 - Assumes the Hands server is registered as `hands` in your MCP config. If you used

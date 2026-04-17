@@ -1,15 +1,36 @@
-# Hands — Multi-Layer Desktop Automation for AI Agents
+# Hands -- Multi-Layer Desktop Automation for AI Agents
 
-**Hands** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control through three automation tiers — not just pixel-guessing from screenshots.
+**Hands** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control through three automation tiers -- not just pixel-guessing from screenshots.
+
+## What's New in v1.3.1
+
+- HTTP dashboard endpoint migrated to tiny_http (smaller binary, simpler stack)
+- Duration tracking for tool calls in dashboard status
+- Credential redaction in dashboard output
+- Field name alignment across dashboard JSON responses
+- Metadata cleanup and documentation fixes
+
+<details>
+<summary>Previous releases</summary>
+
+**v1.3.0** (2026-04-16) -- Path deps to git tags, Cargo.lock committed, README MIT to Apache-2.0, version sync. First version that builds as standalone public clone.
+
+**v1.2.2** -- Phase C Fix3: meta-tool dispatch, async Send bound, notify parity.
+
+**v1.2.1** -- Phase C fixes, meta-tool dispatch improvements.
+
+**v1.1.1** -- Initial public release with 71 MCP tools across 3 automation tiers.
+
+</details>
 
 ## Installation & Per-Machine Setup
 
 This is a standalone Rust MCP server for Claude Desktop / Claude Code. Each machine that runs the server needs its own copy of the binary plus a few config tweaks.
 
 **Quick install:**
-1. Download the right binary from [Releases](https://github.com/josephwander-arch/hands/releases) — `_arm64.exe` for Windows ARM64, `_x64.exe` for x64.
+1. Download the right binary from [Releases](https://github.com/josephwander-arch/hands/releases) -- `_arm64.exe` for Windows ARM64, `_x64.exe` for x64.
 2. Copy to `C:\CPC\servers\hands.exe`.
-3. Edit `%APPDATA%\Claude\claude_desktop_config.json` — paste the snippet from [`claude_desktop_config.example.json`](./claude_desktop_config.example.json) into your `mcpServers` object.
+3. Edit `%APPDATA%\Claude\claude_desktop_config.json` -- paste the snippet from [`claude_desktop_config.example.json`](./claude_desktop_config.example.json) into your `mcpServers` object.
 4. Restart Claude Desktop.
 
 For full per-machine setup (paths, skills, credentials), see [`docs/per_machine_setup.md`](./docs/per_machine_setup.md).
@@ -27,14 +48,14 @@ Hands takes a different approach: **use the right automation layer for each task
 | Layer | What it does | When to use it |
 |-------|-------------|---------------|
 | **Browser** (Playwright) | Full DOM access, JS eval, network interception, form fill, multi-tab | Web apps, scraping, testing |
-| **UIA** (Windows UI Automation) | Accessibility tree, named elements, window management, app launch | Native Windows apps |
-| **Vision** (OCR + template matching) | Screenshot, OCR, image diff, visual analysis | Anything else, verification |
+| **UIA** (Win UI Automation) | Accessibility tree, named elements, window management, app launch | Native Windows apps |
+| **Vision** (OCR + template match) | Screenshot, OCR, image diff, visual analysis | Anything else, verification |
 
 ## Comparison with Claude Computer Use
 
 | Capability | Claude Computer Use | Hands |
 |-----------|-------------------|-------|
-| Element identification | Screenshot → guess coordinates | CSS selectors, XPath, UIA names, accessibility tree |
+| Element identification | Screenshot -> guess coordinates | CSS selectors, XPath, UIA names, accessibility tree |
 | Speed | ~2s per action (screenshot cycle) | Milliseconds (direct API calls) |
 | Browser JS execution | No | Full eval, inject, extract |
 | Network interception | No | Route, mock, log requests |
@@ -91,10 +112,10 @@ cargo build --release -p hands
 
 ```
 hands.exe (MCP server, stdin/stdout JSON-RPC)
-├── browser.rs    — Playwright CDP automation
-├── uia.rs        — Windows UI Automation COM
-├── vision.rs     — Screenshot + OCR + template match
-└── tools.rs      — Tool definitions + dispatch
+├── browser.rs    -- Playwright CDP automation
+├── uia.rs        -- Windows UI Automation COM
+├── vision.rs     -- Screenshot + OCR + template match
+└── tools.rs      -- Tool definitions + dispatch
 ```
 
 Single binary, no runtime dependencies. Playwright browser binaries are auto-managed.
@@ -103,10 +124,10 @@ Single binary, no runtime dependencies. Playwright browser binaries are auto-man
 
 ```
 Is it a web page?
-  → Yes → Browser layer (fast, structured, reliable)
-  → No → Is it a Windows app?
-    → Yes → UIA layer (named elements, accessibility tree)
-    → No → Vision layer (screenshot + OCR fallback)
+  -> Yes -> Browser layer (fast, structured, reliable)
+  -> No -> Is it a Windows app?
+    -> Yes -> UIA layer (named elements, accessibility tree)
+    -> No -> Vision layer (screenshot + OCR fallback)
 ```
 
 ## License

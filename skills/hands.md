@@ -2,16 +2,16 @@
 name: hands
 description: |
   Browser automation, Windows desktop automation, vision/OCR, and workflow
-  graduation pipeline — all through one MCP server. Teaches the escalation
+  graduation pipeline -- all through one MCP server. Teaches the escalation
   ladder, a11y_ref pattern, batch operations, API discovery pipeline, UIA
   desktop control, and vision-as-verification. For hands v1.1.1+.
 ---
 
-# Hands MCP Server — Skill Reference
+# Hands MCP Server -- Skill Reference
 
 Hands is a single Rust binary that gives you browser automation (Playwright CDP),
 Windows desktop automation (UI Automation), vision (OCR + template matching), and
-a workflow subsystem (API discovery, flow recording, credential storage) — all over
+a workflow subsystem (API discovery, flow recording, credential storage) -- all over
 MCP. ~87 tools, zero runtime dependencies, one process.
 
 This skill teaches you how to use it well, not just what buttons exist.
@@ -25,11 +25,11 @@ rung that can do the job.** Moving up costs more tokens, more latency, and more
 fragility.
 
 ```
-Rung 1: browser_http_scrape     — raw HTTP fetch, parse with linkedom. No browser.
-Rung 2: browser_smart_browse     — JS-capable fetch via jsdom. Still no Chrome.
-Rung 3: browser_extract_content  — Chrome headless, extracts clean text/markdown.
-Rung 4: browser_launch + navigate — full interactive Chrome session.
-Rung 5: Vision (screenshot + OCR) — last resort, or verification layer.
+Rung 1: browser_http_scrape     -- raw HTTP fetch, parse with linkedom. No browser.
+Rung 2: browser_smart_browse     -- JS-capable fetch via jsdom. Still no Chrome.
+Rung 3: browser_extract_content  -- Chrome headless, extracts clean text/markdown.
+Rung 4: browser_launch + navigate -- full interactive Chrome session.
+Rung 5: Vision (screenshot + OCR) -- last resort, or verification layer.
 ```
 
 **Rules of thumb:**
@@ -60,17 +60,17 @@ selector.
 ### The workflow
 
 ```
-1. browser_navigate → page loads, a11y snapshot auto-cached
-2. browser_a11y_snapshot → returns the tree with refs (or use the auto-cached one)
-3. browser_click(a11y_ref: "ref_12") → click the element
-4. browser_type(a11y_ref: "ref_15", text: "hello") → type into it
+1. browser_navigate -> page loads, a11y snapshot auto-cached
+2. browser_a11y_snapshot -> returns the tree with refs (or use the auto-cached one)
+3. browser_click(a11y_ref: "ref_12") -> click the element
+4. browser_type(a11y_ref: "ref_15", text: "hello") -> type into it
 ```
 
 ### Why this beats selectors
 
 - Refs survive minor DOM changes (class renames, wrapper div additions).
 - Refs are human-readable in the snapshot (you see "Submit button" not `#btn-x7q`).
-- The snapshot gives you the full interactive surface in one call — you see every
+- The snapshot gives you the full interactive surface in one call -- you see every
   clickable/typeable element without inspecting the DOM.
 
 ### When to re-snapshot
@@ -90,7 +90,7 @@ for one specific element.
 
 ## Batch Operations
 
-Every MCP round-trip has latency — especially in Claude Desktop where each tool
+Every MCP round-trip has latency -- especially in Claude Desktop where each tool
 call is a full request/response cycle. Hands provides batch tools to collapse
 multiple actions into one call.
 
@@ -138,7 +138,7 @@ Same pattern for desktop automation:
 
 ---
 
-## Browser Tools — Reference
+## Browser Tools -- Reference
 
 ### Lifecycle
 | Tool | Purpose |
@@ -154,7 +154,7 @@ Same pattern for desktop automation:
 |------|---------|
 | `browser_get_text` | Extract text from a selector. Clean, no HTML. |
 | `browser_get_html` | Raw HTML of an element or page. |
-| `browser_extract_content` | Smart content extraction — strips nav/ads/chrome, returns clean text. **Use this over get_text for article/page content.** |
+| `browser_extract_content` | Smart content extraction -- strips nav/ads/chrome, returns clean text. **Use this over get_text for article/page content.** |
 | `browser_http_scrape` | Lightweight HTTP fetch + parse. No browser needed. Cheapest read. |
 | `browser_smart_browse` | JS-capable lightweight fetch. Middle ground. |
 | `browser_js_extract` | Run JS to extract structured data. Returns JSON. |
@@ -209,18 +209,18 @@ Same pattern for desktop automation:
 ### API Discovery
 | Tool | Purpose |
 |------|---------|
-| `browser_learn_api` | Analyze captured network traffic to discover API endpoints. Feed it network logs, get back structured API patterns — URLs, methods, headers, payloads. This is the graduation step from browser to HTTP. |
+| `browser_learn_api` | Analyze captured network traffic to discover API endpoints. Feed it network logs, get back structured API patterns -- URLs, methods, headers, payloads. This is the graduation step from browser to HTTP. |
 
 ---
 
 ## The Graduation Pipeline (Pairs With: workflow MCP server)
 
-Browser automation is expensive — Chrome processes, page loads, fragile selectors.
+Browser automation is expensive -- Chrome processes, page loads, fragile selectors.
 But every browser session makes real HTTP calls under the hood. If you capture
 those calls, you can replay them directly: no Chrome, no rendering, no breakage.
 
 This is the **graduation pipeline**: hands discovers the APIs, workflow remembers
-and replays them. The two servers ship as paired releases — separate binaries,
+and replays them. The two servers ship as paired releases -- separate binaries,
 separate repos, but designed as one system.
 
 ### Hands' Role: Discovery
@@ -229,17 +229,17 @@ Hands contributes three tools to the pipeline:
 
 | Tool | Purpose |
 |------|---------|
-| `browser_get_all_network` | Capture all HTTP traffic from a browser session — every request URL, method, headers, and body the page sent while you were interacting with it. |
-| `browser_learn_api` | Analyze captured network traffic to extract API patterns. Takes raw network logs, filters out analytics/tracking noise, and returns structured endpoints — URLs, methods, required headers, auth tokens, body templates, URL placeholders. This is the graduation step. |
+| `browser_get_all_network` | Capture all HTTP traffic from a browser session -- every request URL, method, headers, and body the page sent while you were interacting with it. |
+| `browser_learn_api` | Analyze captured network traffic to extract API patterns. Takes raw network logs, filters out analytics/tracking noise, and returns structured endpoints -- URLs, methods, required headers, auth tokens, body templates, URL placeholders. This is the graduation step. |
 | `browser_http_scrape` | Fast non-Chrome HTTP fetch. For cases where you already know the endpoint and just need to hit it without spinning up a browser. |
 
 The pattern is always the same:
 1. **Do the task in the browser.** Use `browser_launch`, `browser_navigate`,
-   `browser_click`, `browser_type` — whatever the flow requires.
+   `browser_click`, `browser_type` -- whatever the flow requires.
 2. **Capture the traffic.** Call `browser_get_all_network` to pull every HTTP
    request the page made during your session.
 3. **Extract the API surface.** Feed the captured traffic to `browser_learn_api`.
-   It returns the endpoints that actually matter — the ones that do the work,
+   It returns the endpoints that actually matter -- the ones that do the work,
    not the analytics pings.
 
 At this point, hands' job is done. You have structured API patterns. What you
@@ -251,49 +251,49 @@ The **workflow** MCP server handles storage, credentials, and replay. It turns
 hands' one-time API discoveries into reusable, headless operations.
 
 Key workflow tools (see the workflow repo for full documentation):
-- **`api_store`** — Save a discovered API pattern as a named, reusable entry
+- **`api_store`** -- Save a discovered API pattern as a named, reusable entry
   (endpoint, method, headers, body template, credential references).
-- **`api_call`** — Replay a stored pattern with dynamic parameters. Resolves
+- **`api_call`** -- Replay a stored pattern with dynamic parameters. Resolves
   credentials, fills placeholders, makes the HTTP request. No browser needed.
-- **`api_list`** / **`api_test`** — Manage and verify stored patterns.
+- **`api_list`** / **`api_test`** -- Manage and verify stored patterns.
 - **`credential_store`** / **`credential_get`** / **`credential_list`** /
-  **`credential_delete`** / **`credential_refresh`** — Encrypted credential
+  **`credential_delete`** / **`credential_refresh`** -- Encrypted credential
   vault. Secrets are referenced by name in API patterns and resolved at call time.
-- **`flow_record`** / **`flow_replay`** — Experimental macro layer for flows
+- **`flow_record`** / **`flow_replay`** -- Experimental macro layer for flows
   that resist API extraction (complex auth, WebSocket state, CSRF rotation).
 
 ### Example: Full Pipeline
 
 ```
 # 1. Discovery (hands)
-browser_launch → browser_navigate("https://app.example.com/dashboard")
-browser_click("#export-btn") → browser_fill_form({format: "csv", range: "30d"})
+browser_launch -> browser_navigate("https://app.example.com/dashboard")
+browser_click("#export-btn") -> browser_fill_form({format: "csv", range: "30d"})
 browser_click("#download")
 
 # 2. Capture & extract (hands)
-browser_get_all_network → returns 47 requests
-browser_learn_api(network_logs) → extracts 3 real endpoints:
+browser_get_all_network -> returns 47 requests
+browser_learn_api(network_logs) -> extracts 3 real endpoints:
   POST /api/v2/exports  (creates export job)
   GET  /api/v2/exports/{id}/status  (polls until ready)
   GET  /api/v2/exports/{id}/download  (fetches the file)
 
-# 3. Store & replay (workflow — no browser needed next time)
+# 3. Store & replay (workflow -- no browser needed next time)
 api_store(name="example_export", endpoints=[...])
 credential_store(name="example_token", value="Bearer ...")
 api_call(name="example_export", params={format: "csv", range: "30d"})
-  → 200ms instead of 5 seconds, no Chrome process
+  -> 200ms instead of 5 seconds, no Chrome process
 ```
 
 ### The Big Picture
 
 ```
-Browser session (expensive, fragile)        ← hands
+Browser session (expensive, fragile)        <- hands
     ↓ browser_get_all_network + browser_learn_api
-Structured API patterns (discovered)        ← hands output
+Structured API patterns (discovered)        <- hands output
     ↓ api_store + credential_store
-Stored replay (no browser, milliseconds)    ← workflow
+Stored replay (no browser, milliseconds)    <- workflow
     ↓ api_call
-Production automation                       ← workflow
+Production automation                       <- workflow
 ```
 
 Hands is the discovery tool. Workflow is the production tool. Install both
@@ -301,10 +301,10 @@ for the full pipeline.
 
 ---
 
-## Desktop Automation (UIA) — Reference
+## Desktop Automation (UIA) -- Reference
 
 The UIA tier controls native Windows applications through the accessibility tree.
-It works with any app that exposes UIA elements — which is most standard Windows
+It works with any app that exposes UIA elements -- which is most standard Windows
 apps (Office, File Explorer, Settings, etc.).
 
 ### When to use UIA vs. Browser
@@ -353,15 +353,15 @@ apps (Office, File Explorer, Settings, etc.).
   a button. Add `control_type: "Button"` to disambiguate.
 - **Some apps don't expose UIA.** Games, custom-drawn UIs, and some Electron apps
   have poor UIA support. Fall back to vision tools for those.
-- **ARM64 native.** UIA works on both x64 and ARM64 Windows — no emulation needed.
+- **ARM64 native.** UIA works on both x64 and ARM64 Windows -- no emulation needed.
   This is a key differentiator vs. browser-only tools.
 
 ---
 
-## Vision Tools — Reference
+## Vision Tools -- Reference
 
 Vision tools handle screenshots, OCR, template matching, and image comparison.
-They work at the pixel level — no DOM, no accessibility tree.
+They work at the pixel level -- no DOM, no accessibility tree.
 
 ### Core Tools
 | Tool | Purpose |
@@ -401,20 +401,20 @@ The exception: when you literally cannot reach the content through DOM or UIA
 
 ---
 
-## Combo Tools — Reference
+## Combo Tools -- Reference
 
 These cross tier boundaries for common workflows.
 
 | Tool | Purpose |
 |------|---------|
-| `find_and_click` | OCR screen → find text → click it. Tries other windows if not found. Params: `text`, `window_title`, `button`, `double_click`, `offset_x/y`. |
+| `find_and_click` | OCR screen -> find text -> click it. Tries other windows if not found. Params: `text`, `window_title`, `button`, `double_click`, `offset_x/y`. |
 | `read_screen_text` | Screenshot + OCR in one call. Optional `window_title` targeting. |
 | `wait_for_visual` | Poll screen until text (OCR) or template image appears. Params: `text` or `template_path`, `timeout_ms`, `poll_interval_ms`. |
 | `window_screenshot` | Focus window by title, screenshot it. Optional OCR. Uses PrintWindow API for obscured windows. |
 | `type_into_window` | Focus window, optionally click a position, then type text. |
 | `drag` | Mouse drag between coordinates. Smooth, duration configurable. |
 | `element_drag` | Drag between CSS-selector elements (or with offset). |
-| `status` | Health check — reports state of all subsystems. |
+| `status` | Health check -- reports state of all subsystems. |
 
 ---
 
@@ -444,7 +444,7 @@ extracts:
 
 ### Step 4: Replay via HTTP
 
-Now you have the API pattern. Future runs skip the browser entirely — use
+Now you have the API pattern. Future runs skip the browser entirely -- use
 `browser_http_scrape` or direct HTTP calls to hit the API endpoint. No Chrome
 process, no rendering, no waiting for page loads. Milliseconds instead of seconds.
 
@@ -471,8 +471,8 @@ Some sites detect headless browsers and block them. `browser_launch` accepts a
 ```
 
 This modifies browser fingerprints, removes automation indicators, and adjusts
-timing patterns. It's not foolproof — sophisticated anti-bot systems will still
-catch it — but it handles the common checks (navigator.webdriver, headless
+timing patterns. It's not foolproof -- sophisticated anti-bot systems will still
+catch it -- but it handles the common checks (navigator.webdriver, headless
 detection, etc.).
 
 **When to use stealth:**
@@ -508,24 +508,24 @@ initial exploration, capture the auth tokens, then graduate to HTTP replays.
 
 ```
 1. browser_http_scrape(url: "https://example.com/data")
-   → If this returns good content, you're done.
+   -> If this returns good content, you're done.
 
 2. If page needs JS: browser_smart_browse(url: "...")
-   → If this works, you're done.
+   -> If this works, you're done.
 
 3. If interactive or JS-heavy:
-   browser_launch() → browser_navigate(url: "...") → browser_extract_content()
-   → browser_close()
+   browser_launch() -> browser_navigate(url: "...") -> browser_extract_content()
+   -> browser_close()
 ```
 
 ### Pattern: Fill a web form
 
 ```
-1. browser_launch() → browser_navigate(url: "https://example.com/form")
-2. browser_get_forms()  → discover field names and types
+1. browser_launch() -> browser_navigate(url: "https://example.com/form")
+2. browser_get_forms()  -> discover field names and types
 3. browser_fill_form(fields: [...])
 4. browser_click(a11y_ref: "ref_for_submit")  or  browser_submit_form()
-5. browser_screenshot()  → verify success
+5. browser_screenshot()  -> verify success
 6. browser_close()
 ```
 
@@ -533,11 +533,11 @@ initial exploration, capture the auth tokens, then graduate to HTTP replays.
 
 ```
 1. uia_app_launch(name: "notepad.exe")
-2. uia_list_window()  → confirm it's running, get exact title
+2. uia_list_window()  -> confirm it's running, get exact title
 3. uia_focus_window(title: "Untitled - Notepad")
 4. uia_type(text: "Hello world")
 5. uia_shortcut(keys: "Ctrl+S")
-6. wait_for_visual(text: "Save As")  → wait for save dialog
+6. wait_for_visual(text: "Save As")  -> wait for save dialog
 7. uia_type(text: "myfile.txt")
 8. uia_key_press(key: "Enter")
 ```
@@ -547,9 +547,9 @@ initial exploration, capture the auth tokens, then graduate to HTTP replays.
 ```
 1. (... do your browser or UIA automation ...)
 2. vision_screenshot_ocr(region: {x: 100, y: 200, width: 400, height: 50})
-   → confirm expected text appears
+   -> confirm expected text appears
 3. If unexpected: vision_diff(image_a: "before.png", image_b: "after.png")
-   → see what changed
+   -> see what changed
 ```
 
 ### Pattern: Graduate browser flow to HTTP
@@ -557,15 +557,15 @@ initial exploration, capture the auth tokens, then graduate to HTTP replays.
 ```
 1. browser_launch(profile_path: "C:/profiles/mysite")
 2. browser_navigate(url: "https://app.example.com/login")
-3. browser_fill_form(...) → browser_click(...) → (complete the flow)
-4. browser_get_all_network()  → capture all HTTP traffic
-5. browser_learn_api()  → extract API patterns from the traffic
+3. browser_fill_form(...) -> browser_click(...) -> (complete the flow)
+4. browser_get_all_network()  -> capture all HTTP traffic
+5. browser_learn_api()  -> extract API patterns from the traffic
 6. browser_close()
 
 Future runs:
 7. browser_http_scrape(url: "https://api.example.com/data",
      headers: {"Authorization": "Bearer ..."})
-   → no browser needed
+   -> no browser needed
 ```
 
 ### Pattern: Multi-window desktop workflow
@@ -607,7 +607,7 @@ running and leaks memory. Always close when done.
 
 ### Don't: Use individual calls for predictable sequences
 
-If you're doing login → navigate → extract → screenshot, that's 4 round-trips.
+If you're doing login -> navigate -> extract -> screenshot, that's 4 round-trips.
 Use `browser_batch` for 1 round-trip.
 
 ### Don't: Re-snapshot the a11y tree unnecessarily
@@ -645,7 +645,7 @@ survives window moves and resolution changes.
 
 ### UIA can't find elements
 
-- `uia_list_window()` first — verify the app is running and the title matches.
+- `uia_list_window()` first -- verify the app is running and the title matches.
 - Some apps use custom rendering with no UIA support. Try `vision_screenshot_ocr`
   as fallback.
 - On ARM64: UIA works natively. If elements are missing, it's the app, not the
@@ -678,7 +678,7 @@ survives window moves and resolution changes.
 - Sophisticated anti-bot systems (Cloudflare Enterprise, PerimeterX) may still
   detect automation. Stealth handles common checks but isn't a silver bullet.
 - Try adding realistic delays between actions.
-- Consider the graduation pipeline — capture the API and skip the browser entirely.
+- Consider the graduation pipeline -- capture the API and skip the browser entirely.
 
 ---
 

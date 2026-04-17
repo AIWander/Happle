@@ -1,17 +1,12 @@
 ---
 name: hands-getting-started
-reference_tier: 1
-description: 'Getting started with CPC Hands — the 87-tool automation server for browser,
+description: 'Getting started with Hands -- the 87-tool automation server for browser,
 
   Windows desktop, and vision/OCR tasks. Use when: first time using hands,
 
   unsure which hands tool to pick, need a workflow example, or want to
 
   understand what hands can do vs other approaches.'
-toc_block_lines:
-- 181
-- 192
-toc_generated_at: 2026-04-14
 ---
 
 ## What Hands Is
@@ -25,9 +20,9 @@ A single MCP server (hands.exe) with 87 tools across 4 subsystems. It replaces p
 | Vision | vision_* | 9 | Screenshots, OCR, template match, image diff. |
 | Combo | (mixed) | 11 | Cross-subsystem: drag, file_upload, find_and_click, read_screen_text, etc. |
 
-## First Steps — Browser
+## First Steps -- Browser
 
-Most tasks start here. The pattern is always: **launch/attach → navigate → do things → extract**.
+Most tasks start here. The pattern is always: **launch/attach -> navigate -> do things -> extract**.
 
 ### 1. Get a browser
 ```
@@ -43,7 +38,7 @@ hands:browser_navigate(url="https://example.com")
 
 ### 3. Extract content
 ```
-hands:browser_extract_content(url="https://example.com")   # clean text, no junk — best for reading pages
+hands:browser_extract_content(url="https://example.com")   # clean text, no junk -- best for reading pages
 hands:browser_get_text()                                     # raw visible text of current page
 hands:browser_get_html(selector="main")                      # HTML of a specific element
 hands:browser_js_extract(script="document.title")            # run JS and return result
@@ -72,9 +67,9 @@ hands:browser_screenshot()                                    # full page
 hands:browser_screenshot(selector=".chart")                   # specific element
 ```
 
-## First Steps — Windows Desktop (UIA)
+## First Steps -- Windows Desktop (UIA)
 
-For native Windows apps — File Explorer, Notepad, Settings, any Win32/WPF/UWP app.
+For native Windows apps -- File Explorer, Notepad, Settings, any Win32/WPF/UWP app.
 
 ### 1. Launch or focus
 ```
@@ -99,7 +94,7 @@ hands:uia_window_snap(title="Notepad", position="left")      # snap window
 hands:uia_window_state(title="Notepad", state="maximize")    # maximize/minimize/restore
 ```
 
-## First Steps — Vision/OCR
+## First Steps -- Vision/OCR
 
 For when you need to see the screen or read text from images.
 
@@ -107,21 +102,21 @@ For when you need to see the screen or read text from images.
 hands:vision_screenshot()                                     # capture full screen
 hands:vision_ocr(image_path="screenshot.png")                # OCR an image file
 hands:vision_screenshot_ocr()                                 # screenshot + OCR in one call
-hands:read_screen_text()                                      # same as above — preferred alias
+hands:read_screen_text()                                      # same as above -- preferred alias
 hands:vision_find_template(template="button.png")            # find image on screen
 hands:vision_diff(before="a.png", after="b.png")             # compare two screenshots
 hands:vision_analyze(image_path="screen.png", question="What app is open?")  # AI analysis
 ```
 
-## Combo Tools — Cross-Subsystem Power
+## Combo Tools -- Cross-Subsystem Power
 
 These combine subsystems for common workflows:
 
 | Tool | What It Does |
 |------|-------------|
-| find_and_click(text) | OCR screen → find text → click it. Works on any app. |
-| read_screen_text() | Screenshot → OCR → return all text. Fastest screen read. |
-| type_into_window(title, text) | Focus window → type. No element search needed. |
+| find_and_click(text) | OCR screen -> find text -> click it. Works on any app. |
+| read_screen_text() | Screenshot -> OCR -> return all text. Fastest screen read. |
+| type_into_window(title, text) | Focus window -> type. No element search needed. |
 | wait_for_visual(text) | Poll screen until text/image appears. Great for waits. |
 | file_upload(selector, path) | Handle file picker dialogs in browser. |
 | drag(from, to) | Pixel-coordinate drag. |
@@ -131,19 +126,19 @@ These combine subsystems for common workflows:
 ## Common Workflows
 
 **Scrape a webpage:**
-browser_extract_content(url="...") — one call, done.
+browser_extract_content(url="...") -- one call, done.
 
 **Fill and submit a form:**
-browser_navigate → browser_fill_form → browser_submit_form
+browser_navigate -> browser_fill_form -> browser_submit_form
 
 **Automate a Windows app:**
-uia_app_launch → uia_find → uia_click / uia_type → uia_read_value
+uia_app_launch -> uia_find -> uia_click / uia_type -> uia_read_value
 
 **Monitor for a visual change:**
-wait_for_visual(text="Complete") → read_screen_text()
+wait_for_visual(text="Complete") -> read_screen_text()
 
 **Extract data from multiple pages:**
-browser_navigate → browser_scroll_collect(selector=".item") — auto-scrolls and collects.
+browser_navigate -> browser_scroll_collect(selector=".item") -- auto-scrolls and collects.
 
 **Batch browser actions (speed):**
 ```
@@ -173,26 +168,12 @@ hands:browser_batch(actions=[
 ## Key Differences from Claude Computer Use
 
 Hands is NOT pixel-guessing. It uses structured APIs:
-- **Browser**: Playwright selectors (CSS, XPath, text) — precise, fast, no screenshots needed
-- **UIA**: Windows Accessibility tree — finds elements by name, role, state
-- **Vision**: OCR engine + template matching — structured text extraction, not model interpretation
+- **Browser**: Playwright selectors (CSS, XPath, text) -- precise, fast, no screenshots needed
+- **UIA**: Windows Accessibility tree -- finds elements by name, role, state
+- **Vision**: OCR engine + template matching -- structured text extraction, not model interpretation
 
 Each action takes milliseconds, not 2 seconds. You can batch actions. You get structured data back, not just screenshots.
 
 ## Reference
 
-Full capability comparison: system_architecture/hands_vs_claude_computer_use.md in Volumes.
-
-
-<!-- NAV -->
-## (top): 1-10
-## ## What Hands Is: 11-21
-## ## First Steps — Browser: 22-68
-## ## First Steps — Windows Desktop (UIA): 69-95
-## ## First Steps — Vision/OCR: 96-109
-## ## Combo Tools — Cross-Subsystem Power: 110-124
-## ## Common Workflows: 125-150
-## ## Tool Selection Quick Ref: 151-166
-## ## Key Differences from Claude Computer Use: 167-175
-## ## Reference: 176-178
-<!-- /NAV -->
+For full capability comparison, see the [README](../../README.md#comparison-with-claude-computer-use).
