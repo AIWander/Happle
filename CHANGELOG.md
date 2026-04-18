@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **GitHub Actions release workflow** — `v*` tag push builds x64 (windows-latest) + ARM64 (windows-11-arm native) binaries, attaches to draft release as `hands-vX.Y.Z-x64.exe` / `hands-vX.Y.Z-aarch64.exe`.
+- **SECURITY.md** — security policy and reporting instructions.
+- **Platform-split install docs** — README install section split into self-contained Windows x64 and ARM64 sub-sections.
+
 ## v1.3.2 - 2026-04-17
 
 ### Changed

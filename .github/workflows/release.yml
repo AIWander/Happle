@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run tests
+        run: cargo test --release --locked
+        timeout-minutes: 15
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            suffix: x64
+          - runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            suffix: aarch64
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release
+        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Rename binary
+        shell: pwsh
+        run: |
+          $repo = "${{ github.event.repository.name }}"
+          $version = "${{ github.ref_name }}"
+          Copy-Item "target/${{ matrix.target }}/release/$repo.exe" "$repo-$version-${{ matrix.suffix }}.exe"
+      - name: Upload binary
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ github.event.repository.name }}-*-${{ matrix.suffix }}.exe
+          draft: true
+          prerelease: false

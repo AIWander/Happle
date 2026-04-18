@@ -31,19 +31,50 @@
 
 </details>
 
-## Installation & Per-Machine Setup
+## Install
 
-This is a standalone Rust MCP server for Claude Desktop / Claude Code. Each machine that runs the server needs its own copy of the binary plus a few config tweaks.
+### Windows x64
 
-**Quick install:**
-1. Download the right binary from [Releases](https://github.com/josephwander-arch/hands/releases) -- `_arm64.exe` for Windows ARM64, `_x64.exe` for x64.
-2. Copy to `C:\CPC\servers\hands.exe`.
-3. Edit `%APPDATA%\Claude\claude_desktop_config.json` -- paste the snippet from [`claude_desktop_config.example.json`](./claude_desktop_config.example.json) into your `mcpServers` object.
+1. Download `hands-v1.3.2-x64.exe` from the [latest release](https://github.com/josephwander-arch/hands/releases/latest).
+2. Rename to `hands.exe` and place in `%LOCALAPPDATA%\CPC\servers\`.
+3. Add to your `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "hands": {
+         "command": "%LOCALAPPDATA%\\CPC\\servers\\hands.exe"
+       }
+     }
+   }
+   ```
 4. Restart Claude Desktop.
 
-For full per-machine setup (paths, skills, credentials), see [`docs/per_machine_setup.md`](./docs/per_machine_setup.md).
+---
 
-A future `cpc-setup.exe` helper will automate this entire process.
+### Windows ARM64
+
+1. Download `hands-v1.3.2-aarch64.exe` from the [latest release](https://github.com/josephwander-arch/hands/releases/latest).
+2. Rename to `hands.exe` and place in `%LOCALAPPDATA%\CPC\servers\`.
+3. Add to your `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "hands": {
+         "command": "%LOCALAPPDATA%\\CPC\\servers\\hands.exe"
+       }
+     }
+   }
+   ```
+4. Restart Claude Desktop.
+
+---
+
+### Prerequisites
+
+- Windows 10/11 (x64 or ARM64)
+- Claude Desktop or any MCP-compatible client
+
+For full per-machine setup (paths, skills, credentials), see [`docs/per_machine_setup.md`](./docs/per_machine_setup.md).
 
 ---
 
