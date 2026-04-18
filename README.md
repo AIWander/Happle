@@ -2,6 +2,8 @@
 
 **Hands** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control through three automation tiers -- not just pixel-guessing from screenshots.
 
+**Part of [CPC](https://github.com/josephwander-arch) (Cognitive Performance Computing)** — a multi-agent AI orchestration platform. Related repos: [manager](https://github.com/josephwander-arch/manager) · [local](https://github.com/josephwander-arch/local) · [workflow](https://github.com/josephwander-arch/workflow) · [cpc-paths](https://github.com/josephwander-arch/cpc-paths) · [cpc-breadcrumbs](https://github.com/josephwander-arch/cpc-breadcrumbs)
+
 ## What's New in v1.3.1
 
 - HTTP dashboard endpoint migrated to tiny_http (smaller binary, simpler stack)
@@ -129,6 +131,28 @@ Is it a web page?
     -> Yes -> UIA layer (named elements, accessibility tree)
     -> No -> Vision layer (screenshot + OCR fallback)
 ```
+
+## Build from Source
+
+```bash
+git clone https://github.com/josephwander-arch/hands.git
+cd hands
+cargo build --release
+```
+
+Binary appears at `target/release/hands.exe`. Requires Rust stable toolchain — nightly is not required.
+
+## Requirements
+
+- **Windows 10/11** (x64 or ARM64) — required for UIA (Windows UI Automation) and CDP browser automation
+- Rust stable toolchain (build from source only)
+- Playwright browser binaries are auto-managed on first use
+
+Hands is Windows-only. The UIA automation layer depends on Windows COM interfaces, and the vision layer uses Windows-specific screen capture APIs.
+
+## Contributing
+
+Issues welcome; PRs considered but this is primarily maintained as part of the CPC stack.
 
 ## License
 
