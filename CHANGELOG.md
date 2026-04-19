@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release with 71 MCP tools across 3 automation tiers
+- Initial release with 116 MCP tools across 5 automation tiers
 - Browser automation via Playwright CDP (navigate, click, fill, screenshot, eval, and more)
 - Windows UI Automation via COM (find elements, click, type, read values, manage windows)
 - Vision tier: screenshot capture, OCR text extraction, template matching, image diff

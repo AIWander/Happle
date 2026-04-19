@@ -1,6 +1,6 @@
 ---
 title: "Hands MCP Server — Desktop Automation for AI Agents"
-description: "Getting started guide for the Hands Rust MCP server. Gives Claude and other AI agents browser automation via Playwright CDP, Windows UI Automation, and vision (OCR + template matching) through 71 tools over the Model Context Protocol."
+description: "Getting started guide for the Hands Rust MCP server. Gives Claude and other AI agents browser automation via Playwright CDP, Windows UI Automation, and vision (OCR + template matching) through 116 tools over the Model Context Protocol."
 keywords:
   - MCP server
   - model context protocol server
@@ -30,7 +30,7 @@ keywords:
 
 # Getting Started with Hands
 
-Hands is a Rust MCP server that provides 71 tools for desktop automation across three tiers: Browser (Playwright CDP), Windows UI Automation (UIA), and Vision (OCR + template matching). It connects to Claude Desktop, Claude Code, or any MCP-compatible client over standard JSON-RPC on stdin/stdout.
+Hands is a Rust MCP server that provides 116 tools for desktop automation across five tiers: Browser (Playwright CDP), Windows UI Automation (UIA), and Vision (OCR + template matching). It connects to Claude Desktop, Claude Code, or any MCP-compatible client over standard JSON-RPC on stdin/stdout.
 
 Unlike Claude computer use, which relies on repeated screenshots and pixel-coordinate guessing, Hands gives AI agents direct access to the DOM, the Windows accessibility tree, and dedicated OCR --- each chosen for the task at hand. For a full comparison, see the [README](../README.md).
 
@@ -82,7 +82,7 @@ Add it to `~/.claude/mcp.json` (global) or `.mcp.json` (per-project):
 }
 ```
 
-Restart Claude Desktop or Claude Code after editing. The 71 tools will appear in your tool list.
+Restart Claude Desktop or Claude Code after editing. The 116 tools will appear in your tool list.
 
 ## Architecture Overview
 

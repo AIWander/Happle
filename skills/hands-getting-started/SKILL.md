@@ -11,7 +11,7 @@ description: 'Getting started with Hands -- the 116-tool automation server for b
 
 ## What Hands Is
 
-A single MCP server (hands.exe) with 87 tools across 4 subsystems. It replaces pixel-guessing with structured, fast automation.
+A single MCP server (hands.exe) with 116 tools across 4 subsystems. It replaces pixel-guessing with structured, fast automation.
 
 | Subsystem | Prefix | Tools | What It Does |
 |-----------|--------|-------|-------------|
