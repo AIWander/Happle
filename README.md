@@ -1,12 +1,12 @@
 # Hands — Multi-Layer Desktop Automation for AI Agents
 
-[![CI](https://github.com/josephwander-arch/hands/actions/workflows/ci.yml/badge.svg)](https://github.com/josephwander-arch/hands/actions/workflows/ci.yml)
+[![CI](https://github.com/AIWander/hands/actions/workflows/ci.yml/badge.svg)](https://github.com/AIWander/hands/actions/workflows/ci.yml)
 
 **Hands** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control through three automation tiers — not just pixel-guessing from screenshots.
 
 See the [`examples/`](examples/) directory for sample configurations and walkthroughs.
 
-**Part of [CPC](https://github.com/josephwander-arch) (Copy Paste Compute)** — a multi-agent AI orchestration platform. Related repos: [manager](https://github.com/josephwander-arch/manager) · [local](https://github.com/josephwander-arch/local) · [workflow](https://github.com/josephwander-arch/workflow) · [cpc-paths](https://github.com/josephwander-arch/cpc-paths) · [cpc-breadcrumbs](https://github.com/josephwander-arch/cpc-breadcrumbs)
+**Part of [CPC](https://github.com/AIWander) (Copy Paste Compute)** — a multi-agent AI orchestration platform. Related repos: [manager](https://github.com/AIWander/manager) · [local](https://github.com/AIWander/local) · [workflow](https://github.com/AIWander/workflow) · [cpc-paths](https://github.com/AIWander/cpc-paths) · [cpc-breadcrumbs](https://github.com/AIWander/cpc-breadcrumbs)
 
 ## What's New in v1.3.2
 
@@ -39,7 +39,7 @@ See the [`examples/`](examples/) directory for sample configurations and walkthr
 
 ### Windows x64
 
-1. Download `hands-v1.3.2-x64.exe` from the [latest release](https://github.com/josephwander-arch/hands/releases/latest).
+1. Download `hands-v1.3.2-x64.exe` from the [latest release](https://github.com/AIWander/hands/releases/latest).
 2. Rename to `hands.exe` and place in `%LOCALAPPDATA%\CPC\servers\`.
 3. Add to your `claude_desktop_config.json`:
    ```json
@@ -57,7 +57,7 @@ See the [`examples/`](examples/) directory for sample configurations and walkthr
 
 ### Windows ARM64
 
-1. Download `hands-v1.3.2-aarch64.exe` from the [latest release](https://github.com/josephwander-arch/hands/releases/latest).
+1. Download `hands-v1.3.2-aarch64.exe` from the [latest release](https://github.com/AIWander/hands/releases/latest).
 2. Rename to `hands.exe` and place in `%LOCALAPPDATA%\CPC\servers\`.
 3. Add to your `claude_desktop_config.json`:
    ```json
@@ -154,9 +154,9 @@ cargo build --release -p hands
 
 `hands` runs standalone — one binary, one client, and you have browser + UIA + vision automation. Pair with other CPC servers when an automation task needs orchestration, file I/O, or credential-backed HTTP replay.
 
-- Pair with [manager](https://github.com/josephwander-arch/manager) to delegate long-running browser chores to a coding agent and monitor via breadcrumbs.
-- Pair with [workflow](https://github.com/josephwander-arch/workflow) to graduate discovered API calls from browser automation to direct-HTTP replay (`browser_learn_api` feeds `api_store`).
-- Pair with [local](https://github.com/josephwander-arch/local) for filesystem and shell steps before or after automation runs.
+- Pair with [manager](https://github.com/AIWander/manager) to delegate long-running browser chores to a coding agent and monitor via breadcrumbs.
+- Pair with [workflow](https://github.com/AIWander/workflow) to graduate discovered API calls from browser automation to direct-HTTP replay (`browser_learn_api` feeds `api_store`).
+- Pair with [local](https://github.com/AIWander/local) for filesystem and shell steps before or after automation runs.
 
 Host clients: Claude Desktop, Claude Code, OpenAI Codex CLI, Gemini CLI, or any MCP-compatible host.
 
@@ -195,7 +195,7 @@ Is it a web page?
 ## Build from Source
 
 ```bash
-git clone https://github.com/josephwander-arch/hands.git
+git clone https://github.com/AIWander/hands.git
 cd hands
 cargo build --release
 ```
@@ -235,5 +235,5 @@ Copyright 2026 Joseph Wander.
 ## Contact
 
 Joseph Wander
-- GitHub: [github.com/josephwander-arch](https://github.com/josephwander-arch/)
+- GitHub: [github.com/AIWander](https://github.com/AIWander/)
 - Email: josephwander@gmail.com

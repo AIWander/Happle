@@ -47,7 +47,7 @@ Unlike Claude computer use, which relies on repeated screenshots and pixel-coord
 ### Build from source
 
 ```bash
-git clone https://github.com/josephwander-arch/hands.git
+git clone https://github.com/AIWander/hands.git
 cd hands
 cargo build --release -p hands
 ```
@@ -56,7 +56,7 @@ The output binary lands at `target/release/hands.exe`. It is a single file with 
 
 ### Pre-built binaries
 
-Download the latest Windows binaries from the [latest release](https://github.com/josephwander-arch/hands/releases/latest):
+Download the latest Windows binaries from the [latest release](https://github.com/AIWander/hands/releases/latest):
 - `hands-v1.3.2-x64.exe` — Windows x64
 - `hands-v1.3.2-aarch64.exe` — Windows ARM64
 

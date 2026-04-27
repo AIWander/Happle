@@ -46,9 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped Cargo.toml from 0.1.0 to 1.3.0 to match tag history (was stuck at 0.1.0 despite tags v1.1.1, v1.2.1, v1.2.2, v1.3.0-dev)
-- Swapped `browser-mcp` path dep to git tag pin (`josephwander-arch/browser-mcp @ v0.1.1`) -- resolves CRITICAL-1
-- Swapped `vision-core` path dep to git tag pin (`josephwander-arch/vision-core @ v0.1.0`) -- resolves CRITICAL-1
-- Swapped `uia-mcp` path dep to git tag pin (`josephwander-arch/uia-mcp @ v1.0.0`) -- 4th unpublished path dep discovered during F5 attempt (audit missed it), published via F7
+- Swapped `browser-mcp` path dep to git tag pin (`AIWander/browser-mcp @ v0.1.1`) -- resolves CRITICAL-1
+- Swapped `vision-core` path dep to git tag pin (`AIWander/vision-core @ v0.1.0`) -- resolves CRITICAL-1
+- Swapped `uia-mcp` path dep to git tag pin (`AIWander/uia-mcp @ v1.0.0`) -- 4th unpublished path dep discovered during F5 attempt (audit missed it), published via F7
 - Committed Cargo.lock for reproducible CI builds -- resolves CRITICAL-3
 - README.md License section: MIT -> Apache-2.0 (final residue from MIT->Apache-2.0 migration)
 - Added `license = "Apache-2.0"` + `repository` + `description` to Cargo.toml
