@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## v1.0.1 — 2026-05-15 — Dep-bump security release
+
+Resolves Dependabot alerts inherited from the AIWander/hands → AIWander/AI-Hands
+mirror-rename on 2026-05-15. No feature changes.
+
+### Resolved vulnerabilities
+
+- **HIGH**: openssl 0.10.78 → 0.10.79 (GHSA-xp3w-r5p5-63rr) — undefined behavior
+  in `X509Ref::ocsp_responders` for certificates with non-UTF-8 OCSP URLs.
+- **MODERATE**: openssl 0.10.78 → 0.10.79 (GHSA-xv59-967r-8726) — heap buffer
+  overflow when encrypting with AES key-wrap-with-padding. Same bump as the
+  HIGH alert above; one openssl-sys minor bump resolves both.
+- **LOW**: lru 0.12.5 → 0.16.4 (GHSA-rhfx-m35p-ff5j) — `IterMut` violates
+  Stacked Borrows by invalidating an internal `HashMap` pointer (unsound, not
+  yet exploited). Required bumping `rqrr` 0.7 → 0.10 since rqrr 0.7.1 pinned
+  `lru ^0.12`; rqrr 0.10.1 depends on `lru ^0.16` and the public API surface
+  used by AI-Hands (`PreparedImage::prepare_from_greyscale`, `detect_grids`,
+  `Grid::decode`) is unchanged.
+
+### Build
+
+- Both Windows targets rebuilt cleanly with `cargo check --release` passing.
+- x64 hands.exe: 22.55 MB (vs v1.0.0 23.65 MB).
+- ARM64 hands.exe: 19.01 MB (vs v1.0.0 19.95 MB).
+
 ## v1.0.0 — 2026-05-15 — AI-Hands launch
 
 Rebrand of AIWander/hands → AIWander/AI-Hands. Same Rust codebase, fresh
