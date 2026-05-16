@@ -1,5 +1,3 @@
-#![allow(clippy::too_many_arguments)] // browser automation functions require many params
-#![allow(clippy::doc_lazy_continuation)] // numbered lists in module-level doc comments
 //! Meta-tools for the hands MCP server (Phase A v2 + Phase B + Phase C).
 //!
 //! Meta-tools encode best-practice escalation ladders so Claude doesn't need
@@ -34,45 +32,45 @@
 //!   - `hands_login_recovery` — 5-stage login pipeline (template + script)
 
 // ── Shared infrastructure ──
-pub mod cache;
-pub mod consent;
-pub mod error;
-pub mod health;
-pub mod instrumentation;
 pub mod response;
+pub mod error;
 pub mod session;
+pub mod cache;
 pub mod targeting;
 pub mod vision_capture;
+pub mod health;
+pub mod instrumentation;
+pub mod consent;
 
 // ── Phase B shared helpers ──
-pub mod autofill;
 pub mod field_role;
 pub mod label_match;
 pub mod reversibility;
+pub mod autofill;
 
 // ── Meta-tool implementations (Phase A) ──
-pub mod capture;
+pub mod read_page;
 pub mod click;
 pub mod navigate;
-pub mod read_page;
+pub mod capture;
 
 // ── Meta-tool implementations (Phase B) ──
-pub mod fill_form;
 pub mod find;
 pub mod type_text;
+pub mod fill_form;
 
 // ── Phase C shared helpers ──
 pub mod nl_parser;
-pub mod save_dialog;
 pub mod verify_templates;
 pub mod window_match;
+pub mod save_dialog;
 
 // ── Meta-tool implementations (Phase C) ──
-pub mod app_action;
+pub mod verify;
 pub mod qr_scan;
+pub mod app_action;
 pub mod script;
 pub mod templates;
-pub mod verify;
 
 // ── Tests ──
 #[cfg(test)]
@@ -169,7 +167,10 @@ pub async fn handle_meta_tool(
     session: &SharedSession,
 ) -> Option<Value> {
     let fut = dispatch_meta_tool(name, args, browser, session);
-    let result_opt = fut.await;
+    let result_opt = match fut.await {
+        Some(fut_value) => Some(fut_value),
+        None => None,
+    };
     result_opt
 }
 
@@ -182,57 +183,27 @@ async fn dispatch_meta_tool(
 ) -> Option<Value> {
     // Global timeout for any meta-tool call
     let timeout = std::time::Duration::from_millis(
-        args.get("timeout_ms")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(META_TOOL_TIMEOUT_MS),
+        args.get("timeout_ms").and_then(|v| v.as_u64()).unwrap_or(META_TOOL_TIMEOUT_MS)
     );
 
     let result = match name {
         // Phase A
-        "hands_read_page" => {
-            Some(tokio::time::timeout(timeout, read_page::handle(args, browser, session)).await)
-        }
-        "hands_click" => {
-            Some(tokio::time::timeout(timeout, click::handle(args, browser, session)).await)
-        }
-        "hands_navigate" => {
-            Some(tokio::time::timeout(timeout, navigate::handle(args, browser, session)).await)
-        }
-        "hands_capture" => {
-            Some(tokio::time::timeout(timeout, capture::handle(args, browser, session)).await)
-        }
+        "hands_read_page" => Some(tokio::time::timeout(timeout, read_page::handle(args, browser, session)).await),
+        "hands_click" => Some(tokio::time::timeout(timeout, click::handle(args, browser, session)).await),
+        "hands_navigate" => Some(tokio::time::timeout(timeout, navigate::handle(args, browser, session)).await),
+        "hands_capture" => Some(tokio::time::timeout(timeout, capture::handle(args, browser, session)).await),
         // Phase B
-        "hands_find" => {
-            Some(tokio::time::timeout(timeout, find::handle(args, browser, session)).await)
-        }
-        "hands_type" => {
-            Some(tokio::time::timeout(timeout, type_text::handle(args, browser, session)).await)
-        }
-        "hands_fill_form" => {
-            Some(tokio::time::timeout(timeout, fill_form::handle(args, browser, session)).await)
-        }
+        "hands_find" => Some(tokio::time::timeout(timeout, find::handle(args, browser, session)).await),
+        "hands_type" => Some(tokio::time::timeout(timeout, type_text::handle(args, browser, session)).await),
+        "hands_fill_form" => Some(tokio::time::timeout(timeout, fill_form::handle(args, browser, session)).await),
         // Phase C
-        "hands_verify" => {
-            Some(tokio::time::timeout(timeout, verify::handle(args, browser, session)).await)
-        }
-        "hands_scan_qr" => {
-            Some(tokio::time::timeout(timeout, qr_scan::handle(args, browser, session)).await)
-        }
-        "hands_app_action" => {
-            Some(tokio::time::timeout(timeout, app_action::handle(args, browser, session)).await)
-        }
-        "hands_script" => Some(
-            tokio::time::timeout(timeout, Box::pin(script::handle(args, browser, session))).await,
-        ),
+        "hands_verify" => Some(tokio::time::timeout(timeout, verify::handle(args, browser, session)).await),
+        "hands_scan_qr" => Some(tokio::time::timeout(timeout, qr_scan::handle(args, browser, session)).await),
+        "hands_app_action" => Some(tokio::time::timeout(timeout, app_action::handle(args, browser, session)).await),
+        "hands_script" => Some(tokio::time::timeout(timeout, Box::pin(script::handle(args, browser, session))).await),
         "hands_login_recovery" => {
             let script_payload = templates::login::build_login_script(args);
-            Some(
-                tokio::time::timeout(
-                    timeout,
-                    Box::pin(script::handle(&script_payload, browser, session)),
-                )
-                .await,
-            )
+            Some(tokio::time::timeout(timeout, Box::pin(script::handle(&script_payload, browser, session))).await)
         }
         _ => None,
     };
@@ -240,11 +211,7 @@ async fn dispatch_meta_tool(
     match result {
         Some(Ok(value)) => Some(value),
         Some(Err(_elapsed)) => {
-            eprintln!(
-                "[hands] META-TOOL TIMEOUT: '{}' exceeded {}ms",
-                name,
-                timeout.as_millis()
-            );
+            eprintln!("[hands] META-TOOL TIMEOUT: '{}' exceeded {}ms", name, timeout.as_millis());
             Some(json!({
                 "success": false,
                 "error": format!("Meta-tool '{}' timed out after {}ms", name, timeout.as_millis()),
@@ -294,7 +261,7 @@ pub fn meta_tool_definitions() -> Vec<Value> {
         }),
         json!({
             "name": "hands_click",
-            "description": "RECOMMENDED: Click any visible element across browser and desktop. Auto-escalates: a11y ref → fuzzy text → CSS → coordinates → UIA → OCR. Tags reversibility (Reversible | RequiresConfirmation | Destructive) based on target text. Use instead of browser_click / uia_click / find_and_click.",
+            "description": "RECOMMENDED: Click any visible element across browser and desktop. Auto-escalates: a11y ref → fuzzy text → CSS → coordinates → UIA → OCR. Tags reversibility (Reversible | RequiresConfirmation | Destructive) based on target text. When `offset_x`/`offset_y` are set, every rung resolves the element's bounding box and clicks at `center + offset` via coord-click — subsumes the legacy `find_and_click` combo tool. Use instead of browser_click / uia_click / find_and_click.",
             "recommended_for": ["clicking", "button press", "link navigation", "UI interaction"],
             "inputSchema": {
                 "type": "object",
@@ -320,6 +287,16 @@ pub fn meta_tool_definitions() -> Vec<Value> {
                         "type": "boolean",
                         "default": false,
                         "description": "Allow clicking targets classified as destructive (Delete, Pay, etc.)"
+                    },
+                    "offset_x": {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Horizontal pixel offset. When non-zero (alone or with offset_y), forces every rung to resolve the discovered element's bounding-box center and click at center+offset via coord-click. With both offsets at zero, rungs 1-4 use the more reliable ref/selector click instead. Applies to all 7 rungs."
+                    },
+                    "offset_y": {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Vertical pixel offset. When non-zero (alone or with offset_x), forces every rung to resolve the discovered element's bounding-box center and click at center+offset via coord-click. With both offsets at zero, rungs 1-4 use the more reliable ref/selector click instead. Applies to all 7 rungs."
                     }
                 },
                 "required": ["target"]
@@ -356,7 +333,7 @@ pub fn meta_tool_definitions() -> Vec<Value> {
         }),
         json!({
             "name": "hands_capture",
-            "description": "RECOMMENDED: Screenshot a target with optional OCR text verification. Routes to browser, window, or full-screen capture automatically. Multi-monitor aware. Use instead of browser_screenshot + vision_ocr chains.",
+            "description": "RECOMMENDED: Screenshot a target with optional OCR text verification. Routes to browser, window, or full-screen capture automatically. Multi-monitor aware. Optional `window_title` focuses a named window via UIA before any capture (orthogonal to `target`) — subsumes the legacy `read_screen_text` combo tool. Use instead of browser_screenshot + vision_ocr chains.",
             "recommended_for": ["screenshot", "screen capture", "OCR", "visual verification"],
             "inputSchema": {
                 "type": "object",
@@ -382,6 +359,10 @@ pub fn meta_tool_definitions() -> Vec<Value> {
                         "type": "boolean",
                         "default": false,
                         "description": "Include word-level bounding boxes in OCR results"
+                    },
+                    "window_title": {
+                        "type": "string",
+                        "description": "Optional: focus this window via UIA (~200ms settle) before capture. Orthogonal to `target` — works with target='screen' or target='browser'. For window-only capture, set this AND target=<same title>."
                     }
                 }
             }

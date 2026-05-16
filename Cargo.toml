@@ -1,10 +1,10 @@
 [package]
 name = "hands"
-version = "1.3.5"
+version = "1.0.0"
 edition = "2021"
-description = "Hands MCP server — browser automation + Windows UIA + vision/OCR."
+description = "AI-Hands MCP server — browser automation + Windows UIA + vision/OCR."
 license = "Apache-2.0"
-repository = "https://github.com/AIWander/hands"
+repository = "https://github.com/AIWander/AI-Hands"
 keywords = ["cpc", "mcp", "browser", "automation", "windows"]
 categories = ["command-line-utilities", "development-tools", "web-programming"]
 

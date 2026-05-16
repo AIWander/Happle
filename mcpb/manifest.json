@@ -2,20 +2,20 @@
   "$schema": "https://raw.githubusercontent.com/anthropics/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
   "manifest_version": "0.4",
   "name": "hands",
-  "display_name": "CPC Hands",
-  "version": "1.3.5",
+  "display_name": "AI-Hands",
+  "version": "1.0.0",
   "description": "Browser automation, Windows UIA, OCR, and computer vision for Claude",
-  "long_description": "CPC Hands provides Playwright-based browser automation, Windows UI Automation (UIA) for native app control, OCR text extraction, and computer vision capabilities. It enables Claude to interact with any application or website on Windows.",
+  "long_description": "AI-Hands provides chromiumoxide-based browser automation (CDP), Windows UI Automation (UIA) for native app control, OCR text extraction, and computer vision capabilities. It enables Claude to interact with any application or website on Windows. Successor to AIWander/hands; same Rust codebase, fresh versioning. MCP tool prefix and binary name unchanged.",
   "author": {
     "name": "AIWander",
-    "url": "https://github.com/AIWander/hands"
+    "url": "https://github.com/AIWander/AI-Hands"
   },
-  "homepage": "https://github.com/AIWander/hands",
+  "homepage": "https://github.com/AIWander/AI-Hands",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AIWander/hands"
+    "url": "https://github.com/AIWander/AI-Hands"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": ["mcp", "claude", "cpc", "browser", "automation", "uia", "ocr", "vision"],
   "server": {
     "type": "binary",

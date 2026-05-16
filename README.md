@@ -1,18 +1,21 @@
-# Hands — Multi-Layer Desktop Automation for AI Agents
+# AI-Hands — Multi-Layer Desktop Automation for AI Agents
 
-[![CI](https://github.com/AIWander/hands/actions/workflows/ci.yml/badge.svg)](https://github.com/AIWander/hands/actions/workflows/ci.yml)
+[![CI](https://github.com/AIWander/AI-Hands/actions/workflows/ci.yml/badge.svg)](https://github.com/AIWander/AI-Hands/actions/workflows/ci.yml)
 
-**Hands** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control through three automation tiers — not just pixel-guessing from screenshots.
+**AI-Hands** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control through three automation tiers — not just pixel-guessing from screenshots.
+
+> **Renamed from [AIWander/hands](https://github.com/AIWander/hands) on 2026-05-15.** Same Rust codebase, fresh versioning. The `hands.exe` binary name and `hands:*` MCP tool prefix are unchanged — existing MCP configs in Claude Desktop, Claude Code, Cowork, Codex CLI, Gemini CLI, and LM Studio keep working without edits.
 
 See the [`examples/`](examples/) directory for sample configurations and walkthroughs.
 
 **Part of [CPC](https://github.com/AIWander) (Copy Paste Compute)** — a multi-agent AI orchestration platform. Related repos: [manager](https://github.com/AIWander/manager) · [local](https://github.com/AIWander/local) · [workflow](https://github.com/AIWander/workflow)
 
-## What's New in v1.3.5
+## What's New in v1.0.0 (AI-Hands launch)
 
-- **cargo fmt + clippy cleanup** — 32 clippy errors fixed across 11 lints, regex compilations hoisted out of loops
-- **README corrected** — all "Playwright" claims replaced with chromiumoxide (the actual browser engine), install sections consolidated, tool count corrected to 117, full capability inventory added
-- **Version alignment** — Cargo.toml, README, and CHANGELOG all at v1.3.5
+- **New tool: `vision_screenshot_hidden_window`** — always-PrintWindow API captures a window's pixels without bringing it to the foreground. Replaces the `behind=true` mode of `window_screenshot`.
+- **`window_title` parameter on `hands_capture`** — focus a named window via UIA before routing the capture.
+- **`offset_x`/`offset_y` on `hands_click`** — when non-zero, every rung of the 7-rung click ladder resolves the element by its native method then coord-clicks at bbox.center + offset. When both zero, ref/selector click is preserved on rungs 1-4 for reliability.
+- **Deprecation markers** on `find_and_click`, `retry_click`, `read_screen_text`, `type_into_window` (handlers preserved for backward compat), and `window_screenshot` (default mode).
 
 <details>
 <summary>v1.3.4</summary>
@@ -59,7 +62,7 @@ See the [`examples/`](examples/) directory for sample configurations and walkthr
 
 ## Install
 
-1. Download from the [latest release](https://github.com/AIWander/hands/releases/latest):
+1. Download from the [latest release](https://github.com/AIWander/AI-Hands/releases/latest):
    - **Windows x64** → `hands-vX.Y.Z-x64.exe`
    - **Windows ARM64** (Snapdragon X / X Elite / X Plus) → `hands-vX.Y.Z-aarch64.exe`
 2. Rename to `hands.exe` and place in `%LOCALAPPDATA%\CPC\servers\`.
@@ -82,18 +85,20 @@ See the [`examples/`](examples/) directory for sample configurations and walkthr
 ### Prerequisites
 
 - Windows 10/11 (x64 or ARM64)
-- Chrome installed normally (any recent version). Hands does not download or manage browser binaries — it talks to your existing Chrome over CDP.
+- Chrome installed normally (any recent version). AI-Hands does not download or manage browser binaries — it talks to your existing Chrome over CDP.
 - Claude Desktop or any MCP-compatible client
 
 For full per-machine setup (paths, skills, credentials), see [`docs/per_machine_setup.md`](./docs/per_machine_setup.md).
 
 ---
 
-## Why Hands?
+## Why AI-Hands?
+
+*Renamed from AIWander/hands on 2026-05-15. Codebase, binary name, and MCP tool prefix are unchanged.*
 
 Anthropic's [Claude Computer Use](https://docs.anthropic.com/en/docs/agents-and-tools/computer-use) takes screenshots and clicks pixel coordinates. It works, but it's slow (screenshot after every action), imprecise (guessing where to click), and blind (no DOM, no accessibility tree, no structured data).
 
-Hands takes a different approach: **use the right automation layer for each task**.
+AI-Hands takes a different approach: **use the right automation layer for each task**.
 
 | Layer | What it does | When to use it |
 |-------|-------------|---------------|
@@ -103,7 +108,7 @@ Hands takes a different approach: **use the right automation layer for each task
 
 ## Comparison with Claude Computer Use
 
-| Capability | Claude Computer Use | Hands |
+| Capability | Claude Computer Use | AI-Hands |
 |-----------|-------------------|-------|
 | Element identification | Screenshot → guess coordinates | CSS selectors, XPath, UIA names, accessibility tree |
 | Speed | ~2s per action (screenshot cycle) | Milliseconds (direct API calls) |
@@ -141,7 +146,7 @@ Cross-tier tools: find-and-click (OCR→UIA), read screen text, wait for visual,
 
 ### Browser Tier
 
-**Accessibility-first targeting.** Every `browser_navigate` auto-caches an accessibility snapshot. Each interactive element gets a stable ref (`ref_0`, `ref_1`, ...) that flows into `browser_click`, `browser_type`, `browser_hover`, and every other interaction tool. Refs survive minor DOM changes — no brittle CSS selectors needed. This is Hands' primary competitive advantage over screenshot-based agents.
+**Accessibility-first targeting.** Every `browser_navigate` auto-caches an accessibility snapshot. Each interactive element gets a stable ref (`ref_0`, `ref_1`, ...) that flows into `browser_click`, `browser_type`, `browser_hover`, and every other interaction tool. Refs survive minor DOM changes — no brittle CSS selectors needed. This is AI-Hands' primary competitive advantage over screenshot-based agents.
 
 **Stealth mode.** `browser_launch(stealth=true)` or `browser_attach(stealth=true)` strips WebDriver indicators, spoofs navigator properties, and adjusts timing to bypass common bot-detection checks (Cloudflare, Akamai, navigator.webdriver). Not foolproof against enterprise anti-bot, but handles the common cases.
 
@@ -261,8 +266,8 @@ Is it a web page?
 ## Build from Source
 
 ```bash
-git clone https://github.com/AIWander/hands.git
-cd hands
+git clone https://github.com/AIWander/AI-Hands.git
+cd AI-Hands
 cargo build --release
 ```
 
@@ -272,9 +277,9 @@ Binary appears at `target/release/hands.exe`. Requires Rust stable toolchain —
 
 - **Windows 10/11** (x64 or ARM64) — required for UIA (Windows UI Automation) and CDP browser automation
 - Rust stable toolchain (build from source only)
-- Chrome installed normally (any recent version). Hands does not download or manage browser binaries — it talks to your existing Chrome over CDP.
+- Chrome installed normally (any recent version). AI-Hands does not download or manage browser binaries — it talks to your existing Chrome over CDP.
 
-Hands is Windows-only. The UIA automation layer depends on Windows COM interfaces, and the vision layer uses Windows-specific screen capture APIs.
+AI-Hands is Windows-only. The UIA automation layer depends on Windows COM interfaces, and the vision layer uses Windows-specific screen capture APIs.
 
 ## Failure modes
 

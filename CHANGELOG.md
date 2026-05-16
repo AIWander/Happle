@@ -7,7 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## v1.0.0 — 2026-05-15 — AI-Hands launch
+
+Rebrand of AIWander/hands → AIWander/AI-Hands. Same Rust codebase, fresh
+versioning. The hands.exe binary name and `hands:*` MCP tool prefix are
+unchanged — existing MCP configs in Claude Desktop, Claude Code, Cowork,
+Codex CLI, Gemini CLI, LM Studio keep working without edits.
+
+### New in this release
+
+- **New tool: `vision_screenshot_hidden_window`** — always-PrintWindow API
+  captures a window's pixels without bringing it to the foreground. Replaces
+  the `behind=true` mode of `window_screenshot`.
+- **`window_title` parameter on `hands_capture`** — focus a named window via
+  UIA before routing the capture.
+- **`offset_x`/`offset_y` on `hands_click`** — when non-zero, every rung of
+  the 7-rung click ladder resolves the element by its native method then
+  coord-clicks at bbox.center + offset. When both zero, ref/selector
+  click is preserved on rungs 1-4 for reliability.
+
+### Deprecation markers (handlers preserved)
+
+- `find_and_click` → use `hands_click` (offsets now available on every rung)
+- `retry_click` → use `browser_click` with retry option (coming in next browser-mcp release)
+- `read_screen_text` → use `vision_screenshot_ocr` (optional `window_title` via `hands_capture`)
+- `type_into_window` → use `hands_type` (already includes focus verification and chunked typing)
+- `window_screenshot` (default mode) → use `vision_screenshot`; for hidden-window capture use `vision_screenshot_hidden_window`
+
+### Note on versioning
+
+This is v1.0.0 of `AIWander/AI-Hands`, the renamed successor repo. The previous
+repo (`AIWander/hands`) reached v1.3.5 before the rename; that history is
+preserved in this repo's git log but v1.x.x tags have been stripped so the
+tag list starts clean at v1.0.0. The codebase here is the v1.3.5 baseline
+plus today's source improvements layered on top.
+
+---
+
 ## v1.3.5 - 2026-05-01
+
+*(Last release under the old AIWander/hands name. History preserved below for context.)*
+
 
 ### Changed
 

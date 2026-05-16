@@ -15,9 +15,9 @@
 use serde_json::{json, Value};
 use std::time::Instant;
 
+use super::response::{MetaToolResult, RungAttempt, Confidence, Reversibility};
 use super::error::MetaError;
 use super::instrumentation;
-use super::response::{Confidence, MetaToolResult, Reversibility, RungAttempt};
 use super::session::SharedSession;
 use crate::atomic::{AtomicTool, UiaFocusWindow};
 
@@ -32,64 +32,38 @@ pub async fn handle(
         s.next_call_id()
     };
 
-    let target = args
-        .get("target")
-        .and_then(|v| v.as_str())
-        .unwrap_or("screen");
-    let verify = args
-        .get("verify")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let do_ocr = args
-        .get("ocr")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(verify.is_some());
-    let save_path = args
-        .get("save_path")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let _detailed_ocr = args
-        .get("detailed_ocr")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
+    let target = args.get("target").and_then(|v| v.as_str()).unwrap_or("screen");
+    let verify = args.get("verify").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let do_ocr = args.get("ocr").and_then(|v| v.as_bool()).unwrap_or(verify.is_some());
+    let save_path = args.get("save_path").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let _detailed_ocr = args.get("detailed_ocr").and_then(|v| v.as_bool()).unwrap_or(false);
+    // Optional window_title: if provided, focus the named window via UIA and sleep ~200ms
+    // before performing the target's normal routing. This is the cross-surface place to
+    // handle window focusing — vision-core has no UIA, and the dispatcher is the wrong
+    // layer (leaky abstraction). Subsumes the legacy `read_screen_text` window_title arg.
+    let window_title = args.get("window_title").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-    let ctx = json!({"target": target, "ocr": do_ocr, "verify": &verify});
+    if let Some(title) = &window_title {
+        if !title.is_empty() {
+            let _ = UiaFocusWindow.call(&json!({"title": title}));
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        }
+    }
+
+    let ctx = json!({"target": target, "ocr": do_ocr, "verify": &verify, "window_title": &window_title});
 
     let result = match target {
         "browser" => {
-            capture_browser(
-                browser,
-                &verify,
-                do_ocr,
-                save_path.as_deref(),
-                &call_id,
-                &ctx,
-            )
-            .await
+            capture_browser(browser, &verify, do_ocr, save_path.as_deref(), &call_id, &ctx).await
         }
-        "screen" | "" => capture_screen(&verify, save_path.as_deref(), &call_id, &ctx).await,
+        "screen" | "" => {
+            capture_screen(&verify, save_path.as_deref(), &call_id, &ctx).await
+        }
         t if is_css_selector(t) => {
-            capture_browser_selector(
-                browser,
-                t,
-                &verify,
-                do_ocr,
-                save_path.as_deref(),
-                &call_id,
-                &ctx,
-            )
-            .await
+            capture_browser_selector(browser, t, &verify, do_ocr, save_path.as_deref(), &call_id, &ctx).await
         }
         window_title => {
-            capture_window(
-                window_title,
-                &verify,
-                save_path.as_deref(),
-                session,
-                &call_id,
-                &ctx,
-            )
-            .await
+            capture_window(window_title, &verify, save_path.as_deref(), session, &call_id, &ctx).await
         }
     };
 
@@ -97,53 +71,31 @@ pub async fn handle(
 
     // Build MetaToolResult from the capture sub-result
     let (_success, method, rung_attempts, payload, confidence) = match &result {
-        CaptureOutcome::Ok {
-            method,
-            rung,
-            payload,
-            confidence,
-        } => (
-            true,
-            method.clone(),
-            vec![rung.clone()],
-            payload.clone(),
-            *confidence,
-        ),
-        CaptureOutcome::Err {
-            method,
-            rung,
-            error,
-        } => {
-            let meta_result =
-                MetaToolResult::failure(vec![rung.clone()], MetaError::other(error), elapsed)
-                    .with_reversibility(Reversibility::Reversible);
-            instrumentation::log_aggregate(
-                "hands_capture",
-                &call_id,
-                false,
-                method,
-                1,
+        CaptureOutcome::Ok { method, rung, payload, confidence } => {
+            (true, method.clone(), vec![rung.clone()], payload.clone(), *confidence)
+        }
+        CaptureOutcome::Err { method, rung, error } => {
+            let meta_result = MetaToolResult::failure(
+                vec![rung.clone()],
+                MetaError::other(error),
                 elapsed,
-                None,
-                Some(error),
+            ).with_reversibility(Reversibility::Reversible);
+            instrumentation::log_aggregate(
+                "hands_capture", &call_id, false, method,
+                1, elapsed, None, Some(error),
             );
             return meta_result.to_value();
         }
     };
 
-    let meta_result = MetaToolResult::success(&method, rung_attempts.clone(), payload, elapsed)
-        .with_reversibility(Reversibility::Reversible)
-        .with_confidence(Confidence::method_only(confidence));
+    let meta_result = MetaToolResult::success(
+        &method, rung_attempts.clone(), payload, elapsed,
+    ).with_reversibility(Reversibility::Reversible)
+     .with_confidence(Confidence::method_only(confidence));
 
     instrumentation::log_aggregate(
-        "hands_capture",
-        &call_id,
-        true,
-        &method,
-        rung_attempts.len(),
-        elapsed,
-        Some(confidence),
-        None,
+        "hands_capture", &call_id, true, &method,
+        rung_attempts.len(), elapsed, Some(confidence), None,
     );
 
     meta_result.to_value()
@@ -175,15 +127,7 @@ async fn capture_browser(
 
     if !super::browser_is_active(browser).await {
         let rung_ms = rung_start.elapsed().as_millis() as u64;
-        instrumentation::log_rung_attempt(
-            "hands_capture",
-            call_id,
-            "browser_screenshot",
-            false,
-            rung_ms,
-            None,
-            ctx,
-        );
+        instrumentation::log_rung_attempt("hands_capture", call_id, "browser_screenshot", false, rung_ms, None, ctx);
         return CaptureOutcome::Err {
             method: "browser_screenshot".into(),
             rung: RungAttempt::failed("browser_screenshot", rung_ms, "Browser not active"),
@@ -201,19 +145,8 @@ async fn capture_browser(
     let rung_ms = rung_start.elapsed().as_millis() as u64;
 
     if !ok {
-        let err = val
-            .get("error")
-            .and_then(|v| v.as_str())
-            .unwrap_or("screenshot failed");
-        instrumentation::log_rung_attempt(
-            "hands_capture",
-            call_id,
-            "browser_screenshot",
-            false,
-            rung_ms,
-            None,
-            ctx,
-        );
+        let err = val.get("error").and_then(|v| v.as_str()).unwrap_or("screenshot failed");
+        instrumentation::log_rung_attempt("hands_capture", call_id, "browser_screenshot", false, rung_ms, None, ctx);
         return CaptureOutcome::Err {
             method: "browser_screenshot".into(),
             rung: RungAttempt::failed("browser_screenshot", rung_ms, err),
@@ -221,15 +154,7 @@ async fn capture_browser(
         };
     }
 
-    instrumentation::log_rung_attempt(
-        "hands_capture",
-        call_id,
-        "browser_screenshot",
-        true,
-        rung_ms,
-        Some(1.0),
-        ctx,
-    );
+    instrumentation::log_rung_attempt("hands_capture", call_id, "browser_screenshot", true, rung_ms, Some(1.0), ctx);
     let payload = wrap_verify(val, verify);
     CaptureOutcome::Ok {
         method: "browser_screenshot".into(),
@@ -252,15 +177,7 @@ async fn capture_browser_selector(
 
     if !super::browser_is_active(browser).await {
         let rung_ms = rung_start.elapsed().as_millis() as u64;
-        instrumentation::log_rung_attempt(
-            "hands_capture",
-            call_id,
-            "browser_screenshot_selector",
-            false,
-            rung_ms,
-            None,
-            ctx,
-        );
+        instrumentation::log_rung_attempt("hands_capture", call_id, "browser_screenshot_selector", false, rung_ms, None, ctx);
         return CaptureOutcome::Err {
             method: "browser_screenshot_selector".into(),
             rung: RungAttempt::failed("browser_screenshot_selector", rung_ms, "Browser not active"),
@@ -278,19 +195,8 @@ async fn capture_browser_selector(
     let rung_ms = rung_start.elapsed().as_millis() as u64;
 
     if !ok {
-        let err = val
-            .get("error")
-            .and_then(|v| v.as_str())
-            .unwrap_or("element screenshot failed");
-        instrumentation::log_rung_attempt(
-            "hands_capture",
-            call_id,
-            "browser_screenshot_selector",
-            false,
-            rung_ms,
-            None,
-            ctx,
-        );
+        let err = val.get("error").and_then(|v| v.as_str()).unwrap_or("element screenshot failed");
+        instrumentation::log_rung_attempt("hands_capture", call_id, "browser_screenshot_selector", false, rung_ms, None, ctx);
         return CaptureOutcome::Err {
             method: "browser_screenshot_selector".into(),
             rung: RungAttempt::failed("browser_screenshot_selector", rung_ms, err),
@@ -298,15 +204,7 @@ async fn capture_browser_selector(
         };
     }
 
-    instrumentation::log_rung_attempt(
-        "hands_capture",
-        call_id,
-        "browser_screenshot_selector",
-        true,
-        rung_ms,
-        Some(0.95),
-        ctx,
-    );
+    instrumentation::log_rung_attempt("hands_capture", call_id, "browser_screenshot_selector", true, rung_ms, Some(0.95), ctx);
     let payload = wrap_verify(val, verify);
     CaptureOutcome::Ok {
         method: "browser_screenshot_selector".into(),
@@ -328,10 +226,7 @@ async fn capture_window(
 
     // Focus window, ignore failure (fall through to screen capture)
     let focus_result = UiaFocusWindow.call(&json!({"title": title}));
-    let focused = focus_result
-        .get("success")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
+    let focused = focus_result.get("success").and_then(|v| v.as_bool()).unwrap_or(false);
 
     if focused {
         tokio::time::sleep(std::time::Duration::from_millis(150)).await;
@@ -352,22 +247,10 @@ async fn capture_window(
     let shot_result = vision_core::execute("vision_screenshot_ocr", &shot_args).await;
     let rung_ms = rung_start.elapsed().as_millis() as u64;
 
-    let rung_name = if focused {
-        "window_screenshot"
-    } else {
-        "screen_fallback"
-    };
+    let rung_name = if focused { "window_screenshot" } else { "screen_fallback" };
     let confidence = if focused { 0.9 } else { 0.7 };
 
-    instrumentation::log_rung_attempt(
-        "hands_capture",
-        call_id,
-        rung_name,
-        true,
-        rung_ms,
-        Some(confidence),
-        ctx,
-    );
+    instrumentation::log_rung_attempt("hands_capture", call_id, rung_name, true, rung_ms, Some(confidence), ctx);
     let payload = wrap_verify(shot_result, verify);
 
     CaptureOutcome::Ok {
@@ -394,15 +277,7 @@ async fn capture_screen(
     let shot_result = vision_core::execute("vision_screenshot_ocr", &shot_args).await;
     let rung_ms = rung_start.elapsed().as_millis() as u64;
 
-    instrumentation::log_rung_attempt(
-        "hands_capture",
-        call_id,
-        "screen_capture",
-        true,
-        rung_ms,
-        Some(0.8),
-        ctx,
-    );
+    instrumentation::log_rung_attempt("hands_capture", call_id, "screen_capture", true, rung_ms, Some(0.8), ctx);
     let payload = wrap_verify(shot_result, verify);
 
     CaptureOutcome::Ok {
@@ -416,8 +291,7 @@ async fn capture_screen(
 /// Apply verify logic and wrap into a result payload.
 fn wrap_verify(raw: Value, verify: &Option<String>) -> Value {
     if let Some(expected) = verify {
-        let ocr_text = raw
-            .get("ocr_text")
+        let ocr_text = raw.get("ocr_text")
             .or_else(|| raw.get("text"))
             .and_then(|v| v.as_str())
             .unwrap_or("")
