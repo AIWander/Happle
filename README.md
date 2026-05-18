@@ -10,12 +10,19 @@ See the [`examples/`](examples/) directory for sample configurations and walkthr
 
 **Part of [CPC](https://github.com/AIWander) (Copy Paste Compute)** — a multi-agent AI orchestration platform. Related repos: [manager](https://github.com/AIWander/manager) · [local](https://github.com/AIWander/local) · [workflow](https://github.com/AIWander/workflow)
 
-## What's New in v1.0.0 (AI-Hands launch)
+## What's New in v1.0.1
+
+- **Security: 3 Dependabot alerts resolved** — `openssl` 0.10.78 → 0.10.79 (fixes [GHSA-xp3w-r5p5-63rr](https://github.com/advisories/GHSA-xp3w-r5p5-63rr) HIGH OCSP UB and [GHSA-xv59-967r-8726](https://github.com/advisories/GHSA-xv59-967r-8726) MODERATE AES key-wrap heap overflow); `lru` 0.12.5 → 0.16.4 (fixes [GHSA-rhfx-m35p-ff5j](https://github.com/advisories/GHSA-rhfx-m35p-ff5j) LOW IterMut Stacked Borrows) via `rqrr` 0.7 → 0.10. Binary size: x64 22.55 MB (−1.10 MB vs v1.0.0), ARM64 19.01 MB (−0.94 MB vs v1.0.0).
+
+<details>
+<summary>v1.0.0 — AI-Hands launch</summary>
 
 - **New tool: `vision_screenshot_hidden_window`** — always-PrintWindow API captures a window's pixels without bringing it to the foreground. Replaces the `behind=true` mode of `window_screenshot`.
 - **`window_title` parameter on `hands_capture`** — focus a named window via UIA before routing the capture.
 - **`offset_x`/`offset_y` on `hands_click`** — when non-zero, every rung of the 7-rung click ladder resolves the element by its native method then coord-clicks at bbox.center + offset. When both zero, ref/selector click is preserved on rungs 1-4 for reliability.
 - **Deprecation markers** on `find_and_click`, `retry_click`, `read_screen_text`, `type_into_window` (handlers preserved for backward compat), and `window_screenshot` (default mode).
+
+</details>
 
 <details>
 <summary>v1.3.4</summary>
