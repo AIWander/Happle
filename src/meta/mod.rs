@@ -167,10 +167,7 @@ pub async fn handle_meta_tool(
     session: &SharedSession,
 ) -> Option<Value> {
     let fut = dispatch_meta_tool(name, args, browser, session);
-    let result_opt = match fut.await {
-        Some(fut_value) => Some(fut_value),
-        None => None,
-    };
+    let result_opt = fut.await;
     result_opt
 }
 

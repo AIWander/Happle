@@ -137,7 +137,7 @@ pub async fn handle(
     // ── Consent risk check ──
     // If target text looks like a consent button, classify and gate on risk level.
     if consent::looks_like_consent_button(&target) {
-        let session_auto_accept = {
+        let _session_auto_accept = {
             let s = session.read().unwrap_or_else(|e| e.into_inner());
             s.auto_accept_low_risk
         };
@@ -156,7 +156,7 @@ pub async fn handle(
                     let elapsed = start.elapsed().as_millis() as u64;
                     let error = MetaError::requires_confirmation(
                         &target,
-                        &format!(
+                        format!(
                             "Consent classified as {:?}: {}. Pass allow_destructive: true to proceed.",
                             classification.risk, classification.reasoning
                         ),

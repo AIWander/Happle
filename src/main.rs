@@ -10,6 +10,18 @@
 //!   Vision (screen): screenshot, ocr, screenshot_ocr, diff, find_template, load_image, analyze
 //!   Combo (new):  find_and_click, read_screen_text, wait_for_visual, window_screenshot
 
+// Clippy-style lints that are not bug-indicating in this codebase:
+// - too_many_arguments: meta-tool handlers intentionally take many params for fine-grained config
+// - doc_lazy_continuation: doc comment list formatting is opinion, not correctness
+// - needless_range_loop: occasional explicit index loops aid readability
+// - single_match: kept for symmetry with adjacent multi-arm matches
+#![allow(
+    clippy::too_many_arguments,
+    clippy::doc_lazy_continuation,
+    clippy::needless_range_loop,
+    clippy::single_match
+)]
+
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
@@ -621,7 +633,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
             for win in windows {
                 let class = win.get("class_name").and_then(|v| v.as_str()).unwrap_or("");
                 let title_val = win.get("title").and_then(|v| v.as_str()).unwrap_or("");
-                if title_val.is_empty() || skip_classes.iter().any(|&s| class == s) {
+                if title_val.is_empty() || skip_classes.contains(&class) {
                     continue;
                 }
                 // Try focusing this window
@@ -1006,8 +1018,8 @@ async fn handle_window_screenshot_behind(
     unsafe {
         let _ = GetClientRect(hwnd, &mut rect);
     }
-    let width = (rect.right - rect.left) as i32;
-    let height = (rect.bottom - rect.top) as i32;
+    let width = rect.right - rect.left;
+    let height = rect.bottom - rect.top;
 
     if width <= 0 || height <= 0 {
         return json!({
@@ -1038,7 +1050,7 @@ async fn handle_window_screenshot_behind(
                 biHeight: -height, // negative = top-down
                 biPlanes: 1,
                 biBitCount: 32,
-                biCompression: BI_RGB.0 as u32,
+                biCompression: BI_RGB.0,
                 ..Default::default()
             },
             ..std::mem::zeroed()
@@ -2488,10 +2500,10 @@ fn handle_a11y_find(args: &Value) -> Value {
 
             let role_match = role_filter
                 .as_ref()
-                .map_or(true, |f| role.to_lowercase() == *f);
+                .is_none_or(|f| role.to_lowercase() == *f);
             let name_match = name_filter
                 .as_ref()
-                .map_or(true, |f| name.to_lowercase().contains(f.as_str()));
+                .is_none_or(|f| name.to_lowercase().contains(f.as_str()));
 
             if role_match && name_match && !ref_id.is_empty() {
                 results.push(serde_json::json!({
@@ -2548,11 +2560,7 @@ async fn handle_get_all_network(
                 // The response may have entries at top level or nested
                 if let Some(arr) = v.as_array() {
                     Some(arr.clone())
-                } else if let Some(arr) = v.get("entries").and_then(|e| e.as_array()) {
-                    Some(arr.clone())
-                } else {
-                    None
-                }
+                } else { v.get("entries").and_then(|e| e.as_array()).cloned() }
             })
             .unwrap_or_default()
     } else {
@@ -2940,6 +2948,11 @@ async fn handle_learn_api(args: &Value, browser: &browser_mcp::browser::SharedBr
 
     let filter_re = filter_pattern.and_then(|p| regex::Regex::new(p).ok());
 
+    // Hoisted out of the loop below to avoid `regex_creation_in_loops` (compiled once, reused).
+    let uuid_re =
+        regex::Regex::new(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
+    let id_re = regex::Regex::new(r"/\d{2,}/").unwrap();
+
     let mut api_entries: Vec<Value> = Vec::new();
     let mut static_filtered = 0u64;
     let total = entries.len();
@@ -2998,15 +3011,8 @@ async fn handle_learn_api(args: &Value, browser: &browser_mcp::browser::SharedBr
             .to_string();
 
         // Build URL pattern: replace UUIDs and numeric IDs with {id}
-        let url_pattern =
-            regex::Regex::new(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
-                .unwrap()
-                .replace_all(url, "{uuid}")
-                .to_string();
-        let url_pattern = regex::Regex::new(r"/\d{2,}/")
-            .unwrap()
-            .replace_all(&url_pattern, "/{id}/")
-            .to_string();
+        let url_pattern = uuid_re.replace_all(url, "{uuid}").to_string();
+        let url_pattern = id_re.replace_all(&url_pattern, "/{id}/").to_string();
         // Remove query params for pattern matching
         let url_pattern_base = url_pattern
             .split('?')
@@ -3484,15 +3490,14 @@ async fn handle_tool_call_inner(
         let mut wants_stealth = stealth_explicit.unwrap_or(false);
 
         // Default stealth=true when headless=true and stealth wasn't explicitly set
-        if browser_tool == "launch" && stealth_explicit.is_none() {
-            if resolved_args
+        if browser_tool == "launch" && stealth_explicit.is_none()
+            && resolved_args
                 .get("headless")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false)
             {
                 wants_stealth = true;
             }
-        }
 
         // Strip stealth param before passing to browser-mcp (it doesn't know about it)
         if let Some(obj) = resolved_args.as_object_mut() {
