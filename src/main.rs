@@ -456,19 +456,44 @@ fn get_all_tool_definitions() -> Vec<Value> {
 
     tools.push(json!({
         "name": "hands_plugin_list",
-        "description": "List currently loaded hands plugins, their ABI versions, and their tools. Phase 1: returns empty list; plugin loading wiring is phase 2 (requires libloading dep). The C ABI is stable in phase 1 — plugin authors can develop against installers/plugin-abi/ai_hands_plugin.h today and load them once phase 2 lands.",
+        "description": "List currently loaded hands plugins, their ABI versions, and their tools. Returns the host's ABI major/minor for compatibility checks. Plugins are loaded via hands_plugin_load and removed via hands_plugin_unload.",
         "inputSchema": { "type": "object", "properties": {} }
     }));
 
     tools.push(json!({
         "name": "hands_plugin_load",
-        "description": "Load a plugin from a .dll/.so/.dylib path. Phase 1: validates the path exists, then returns phase-2-pending status. Phase 2 will Library::new the file, verify ABI major version, call ai_hands_plugin_init(), and register the plugin's tools into the MCP tool list.",
+        "description": "Load a plugin from a .dll/.so/.dylib path. Library::news the file, verifies ABI major version matches the host, resolves the 5 required ai_hands_plugin_* symbols, calls ai_hands_plugin_init(), and registers the plugin's tools so they can be invoked via hands_plugin_call.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "path": { "type": "string", "description": "Absolute path to the plugin binary" }
             },
             "required": ["path"]
+        }
+    }));
+
+    tools.push(json!({
+        "name": "hands_plugin_call",
+        "description": "Invoke a tool exposed by a loaded plugin. Routes to ai_hands_plugin_call via libloading. Returns the plugin's JSON response, or an error if the tool isn't recognized by any loaded plugin.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "tool_name": { "type": "string", "description": "Tool name as advertised by the plugin's PluginInfo.tools" },
+                "args": { "type": "object", "description": "JSON arguments for the plugin tool" }
+            },
+            "required": ["tool_name"]
+        }
+    }));
+
+    tools.push(json!({
+        "name": "hands_plugin_unload",
+        "description": "Unload a previously loaded plugin by name. Calls ai_hands_plugin_shutdown then drops the Library handle (which closes the DLL/SO). Idempotent.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": { "type": "string", "description": "Plugin name as registered via hands_plugin_load" }
+            },
+            "required": ["name"]
         }
     }));
 
@@ -2891,9 +2916,7 @@ fn plugin_list_handler() -> Value {
                 "description": t.description
             })).collect::<Vec<_>>(),
         })).collect::<Vec<_>>(),
-        "count": plugin_count,
-        "phase": "phase_1_stub",
-        "note": "Plugin loading wiring is phase 2 (requires libloading dep). The ABI types + registry + C header are stable in phase 1; plugin authors can develop against installers/plugin-abi/ai_hands_plugin.h today."
+        "count": plugin_count
     })
 }
 
@@ -2902,21 +2925,83 @@ fn plugin_load_handler(args: &Value) -> Value {
         return json!({"ok": false, "error": "missing required arg: path"});
     };
     match plugin::loader::load_from_path(path) {
-        Ok(p) => json!({"ok": true, "loaded": p.name, "path": path}),
-        Err(plugin::loader::LoadError::PhaseNotImplemented) => json!({
-            "ok": false,
-            "error": "plugin loading wiring is phase 2 (requires libloading dep)",
-            "phase": "phase_1_stub",
-            "path_validated": path,
-            "next_step": "phase 2 will add libloading=\"0.8\" and implement Library::new + symbol resolution"
+        Ok(p) => json!({
+            "ok": true,
+            "loaded": p.name,
+            "path": path,
+            "version": p.version,
+            "tool_count": p.tools.len(),
+            "abi_version": {
+                "major": p.abi_version_major,
+                "minor": p.abi_version_minor
+            }
         }),
         Err(plugin::loader::LoadError::PathNotFound(p)) => json!({
             "ok": false,
             "error": "path does not exist",
             "path": p
         }),
+        Err(plugin::loader::LoadError::AbiVersionMismatch { expected, actual }) => json!({
+            "ok": false,
+            "error": "plugin ABI major version does not match host",
+            "expected_major": expected,
+            "plugin_major": actual,
+            "path": path
+        }),
+        Err(plugin::loader::LoadError::SymbolMissing(sym)) => json!({
+            "ok": false,
+            "error": "plugin is missing a required ABI symbol",
+            "symbol": sym,
+            "path": path
+        }),
+        Err(plugin::loader::LoadError::InitFailed(msg)) => json!({
+            "ok": false,
+            "error": "plugin init failed",
+            "detail": msg,
+            "path": path
+        }),
         Err(e) => json!({"ok": false, "error": format!("{:?}", e), "path": path}),
     }
+}
+
+fn plugin_call_handler(args: &Value) -> Value {
+    let Some(tool_name) = args.get("tool_name").and_then(|v| v.as_str()) else {
+        return json!({"ok": false, "error": "missing required arg: tool_name"});
+    };
+    let inner_args = args.get("args").cloned().unwrap_or(json!({}));
+    let inner_args_str = inner_args.to_string();
+
+    match plugin::registry::lookup_tool_owner(tool_name) {
+        None => json!({
+            "ok": false,
+            "error": "no loaded plugin exposes this tool",
+            "tool_name": tool_name
+        }),
+        Some(plugin_name) => {
+            match plugin::registry::invoke_tool(&plugin_name, tool_name, &inner_args_str) {
+                Ok(result) => json!({
+                    "ok": true,
+                    "plugin": plugin_name,
+                    "tool": tool_name,
+                    "result": result
+                }),
+                Err(e) => json!({
+                    "ok": false,
+                    "plugin": plugin_name,
+                    "tool": tool_name,
+                    "error": e
+                }),
+            }
+        }
+    }
+}
+
+fn plugin_unload_handler(args: &Value) -> Value {
+    let Some(name) = args.get("name").and_then(|v| v.as_str()) else {
+        return json!({"ok": false, "error": "missing required arg: name"});
+    };
+    let removed = plugin::registry::unload(name);
+    json!({"ok": true, "name": name, "unloaded": removed})
 }
 
 // ============ A11Y REF RESOLUTION ============
@@ -3635,6 +3720,8 @@ async fn handle_tool_call_inner(
         "hands_attach_lock_status" => return meta::attach_lock::handle_status(args),
         "hands_plugin_list" => return plugin_list_handler(),
         "hands_plugin_load" => return plugin_load_handler(args),
+        "hands_plugin_call" => return plugin_call_handler(args),
+        "hands_plugin_unload" => return plugin_unload_handler(args),
         // Phase D — self-record / replay loop (plan-not-action: returns workflow:* call plans)
         "hands_self_record_start" => {
             return meta::self_record::handle_self_record_start(args).await

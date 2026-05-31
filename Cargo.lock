@@ -969,6 +969,7 @@ dependencies = [
  "cpc-paths",
  "futures",
  "image",
+ "libloading",
  "regex",
  "rqrr",
  "serde",
