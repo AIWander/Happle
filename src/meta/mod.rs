@@ -85,6 +85,9 @@ pub mod summarize_run;
 // ── Phase G — Concurrency arbitration ──
 pub mod attach_lock;
 
+// ── Phase H — Network event streaming (poll-based) ──
+pub mod network_subscribe;
+
 // ── Tests ──
 #[cfg(test)]
 mod tests;
@@ -249,6 +252,35 @@ async fn dispatch_meta_tool(
                 .await,
             )
         }
+        // Phase H — Network event streaming (poll-based subscription model)
+        "hands_network_subscribe" => Some(
+            tokio::time::timeout(
+                timeout,
+                network_subscribe::handle_subscribe(args, browser, session),
+            )
+            .await,
+        ),
+        "hands_network_poll" => Some(
+            tokio::time::timeout(
+                timeout,
+                network_subscribe::handle_poll(args, browser, session),
+            )
+            .await,
+        ),
+        "hands_network_unsubscribe" => Some(
+            tokio::time::timeout(
+                timeout,
+                network_subscribe::handle_unsubscribe(args, browser, session),
+            )
+            .await,
+        ),
+        "hands_network_subscriptions" => Some(
+            tokio::time::timeout(
+                timeout,
+                network_subscribe::handle_subscriptions(args, browser, session),
+            )
+            .await,
+        ),
         _ => None,
     };
 
@@ -831,6 +863,94 @@ pub fn meta_tool_definitions() -> Vec<Value> {
                     }
                 },
                 "required": ["name"]
+            }
+        }),
+        // ── Phase H — Network event streaming (poll-based) ──
+        json!({
+            "name": "hands_network_subscribe",
+            "description": "Create a poll-based subscription over the active browser's network log. Returns a subscription_id used with hands_network_poll. Optional `filter` narrows events by URL glob, HTTP methods, status code range, and Content-Type substring. NO background polling — the caller drives polling via hands_network_poll.",
+            "recommended_for": ["network event stream", "request capture", "API monitoring", "watch network"],
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "filter": {
+                        "type": "object",
+                        "description": "Optional event filter. Missing field = no filter on that axis.",
+                        "properties": {
+                            "url_glob": {
+                                "type": "string",
+                                "description": "Glob pattern matching the request URL. `*` matches any sequence (including empty). `**` collapses to `*`. Anchored: whole-string match. Example: '**/api/**'."
+                            },
+                            "methods": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Uppercase HTTP methods to keep. Empty array = match all (same as omitted)."
+                            },
+                            "status_range": {
+                                "type": "object",
+                                "description": "Inclusive status code range.",
+                                "properties": {
+                                    "min": {"type": "integer"},
+                                    "max": {"type": "integer"}
+                                },
+                                "required": ["min", "max"]
+                            },
+                            "mime_contains": {
+                                "type": "string",
+                                "description": "Case-insensitive substring match against the event's Content-Type."
+                            }
+                        }
+                    },
+                    "history_capacity": {
+                        "type": "integer",
+                        "default": 256,
+                        "description": "Hard cap on per-poll event count returned to the caller. Default 256."
+                    }
+                }
+            }
+        }),
+        json!({
+            "name": "hands_network_poll",
+            "description": "Fetch the active browser's network log and return only events newer than the subscription's cursor (with subscription filter applied). Advances the cursor and updates last_polled_at + events_seen. Returns {ok:false, error:'subscription_id not found'} when the subscription is unknown.",
+            "recommended_for": ["poll network events", "drain network log", "delta network capture"],
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "subscription_id": {
+                        "type": "string",
+                        "description": "subscription_id returned by hands_network_subscribe."
+                    },
+                    "max_events": {
+                        "type": "integer",
+                        "default": 256,
+                        "description": "Soft cap on events returned in this poll, in addition to the subscription's history_capacity hard cap."
+                    }
+                },
+                "required": ["subscription_id"]
+            }
+        }),
+        json!({
+            "name": "hands_network_unsubscribe",
+            "description": "Remove a network subscription. Idempotent: returns ok:true even if the subscription_id was never registered or was already removed. `removed:true` only when the subscription existed before this call.",
+            "recommended_for": ["unsubscribe network", "remove subscription", "cancel network watch"],
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "subscription_id": {
+                        "type": "string",
+                        "description": "subscription_id returned by hands_network_subscribe."
+                    }
+                },
+                "required": ["subscription_id"]
+            }
+        }),
+        json!({
+            "name": "hands_network_subscriptions",
+            "description": "List all active network subscriptions in this hands.exe process. Each entry includes subscription_id, filter, history_capacity, cursor, created_at, last_polled_at, and events_seen.",
+            "recommended_for": ["list subscriptions", "network watch status", "show active subscriptions"],
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
             }
         }),
         json!({
