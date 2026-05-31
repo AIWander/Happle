@@ -3452,6 +3452,16 @@ async fn handle_tool_call_inner(
         "file_upload" => return handle_file_upload(args, browser).await,
         "status" | "hands_status" => return handle_hands_status(),
         "hands_health" => return meta::health::hands_health(),
+        // Phase D — self-record / replay loop (plan-not-action: returns workflow:* call plans)
+        "hands_self_record_start" => {
+            return meta::self_record::handle_self_record_start(args).await
+        }
+        "hands_self_record_lookup" => {
+            return meta::self_record::handle_self_record_lookup(args).await
+        }
+        "hands_self_record_stop_and_optimize" => {
+            return meta::self_record::handle_self_record_stop_and_optimize(args).await
+        }
         "browser_a11y_snapshot" | "browser_accessibility_snapshot" => {
             return handle_accessibility_snapshot(args, browser).await
         }

@@ -72,6 +72,9 @@ pub mod script;
 pub mod templates;
 pub mod verify;
 
+// ── Phase D — Self-improvement ──
+pub mod self_record;
+
 // ── Tests ──
 #[cfg(test)]
 mod tests;
@@ -760,6 +763,60 @@ pub fn meta_tool_definitions() -> Vec<Value> {
                     }
                 },
                 "required": ["url"]
+            }
+        }),
+        // ── Phase D — Self-improvement tools ──
+        json!({
+            "name": "hands_self_record_start",
+            "description": "Begin a self-recording session: generate a deterministic flow_name from `task_description`, persist intent metadata to the local index, and return a call plan for workflow:flow_record_start. The caller invokes the returned plan, performs the task, then closes with hands_self_record_stop_and_optimize. Plan-not-action: hands itself does not call workflow:* tools.",
+            "recommended_for": ["self-recording", "automation memory", "replay loop", "learn from session"],
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "task_description": {
+                        "type": "string",
+                        "description": "Natural-language description of the task being recorded. Used both as the workflow flow description and as the cosine-similarity index key for future lookups."
+                    }
+                },
+                "required": ["task_description"]
+            }
+        }),
+        json!({
+            "name": "hands_self_record_lookup",
+            "description": "Search the local self-record index for prior recordings similar to `task_description` (cosine similarity over token-frequency vectors with English-stopword filtering). Returns matching candidates with replay_call_plan stubs. Use BEFORE hands_self_record_start to check if a replay already exists.",
+            "recommended_for": ["replay lookup", "automation memory", "find prior recording", "self-record search"],
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "task_description": {
+                        "type": "string",
+                        "description": "Natural-language description of the task to search for."
+                    },
+                    "threshold": {
+                        "type": "number",
+                        "default": 0.7,
+                        "description": "Minimum cosine similarity (0.0–1.0) required for a record to be returned as a candidate."
+                    }
+                },
+                "required": ["task_description"]
+            }
+        }),
+        json!({
+            "name": "hands_self_record_stop_and_optimize",
+            "description": "Two-stage orchestrator that closes a self-recording, replays it (dry_run) to get the captured steps, prunes obvious noise (consecutive scrolls, failed-then-success clicks, unreferenced screenshots, instant wait_for), and decides whether to replace a longer existing flow with the shorter pruned one. Stage 1 (no recorded_steps) returns an orchestration_plan to invoke workflow:flow_record_stop + workflow:flow_replay; Stage 2 (recorded_steps populated) returns a replace_plan or 'keep' decision. Plan-not-action: hands itself does not call workflow:* tools.",
+            "recommended_for": ["self-recording", "flow optimization", "replay pruning"],
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Flow name returned earlier by hands_self_record_start."
+                    },
+                    "recorded_steps": {
+                        "description": "OPTIONAL on first call. After running the Stage-1 orchestration_plan, re-invoke this tool with `recorded_steps` set to the `steps` array from the workflow:flow_replay response."
+                    }
+                },
+                "required": ["name"]
             }
         }),
     ]
