@@ -35,10 +35,14 @@ chrono = "0.4"
 browser-mcp = { git = "https://github.com/AIWander/browser-mcp", tag = "v0.1.1" }
 
 # Vision (shared library - screenshot, OCR, diff, template match)
-vision-core = { git = "https://github.com/AIWander/vision-core", tag = "v0.2.0" }
+# v0.3.0 is cross-platform: screenshot works on macOS; OCR uses the ONNX/Paddle
+# backend off-Windows (--features onnx) or returns a stub. This is the tier Joseph
+# wants on macOS — the screenshot "eyes" for troubleshooting.
+vision-core = { git = "https://github.com/AIWander/vision-core", tag = "v0.3.0" }
 
-# UIA (UI Automation - Windows native element inspection + input)
-uia-mcp = { git = "https://github.com/AIWander/uia-mcp", tag = "v1.0.0" }
+# UIA (Windows-only native UI control) is moved to the cfg(windows) deps block
+# at the bottom — the native-UI control tier is deferred on macOS (Joseph: "it's
+# ok to not control mac"). macOS keeps browser + vision (screenshot/OCR) tiers.
 
 # Image processing (for PrintWindow capture)
 image = "0.24"
@@ -70,6 +74,8 @@ tempfile = "3"
 # compiling during the port. Remove once the macOS path is fully wired and Windows
 # is no longer a Happle target (or keep for a true cross-platform single binary).
 [target.'cfg(windows)'.dependencies]
+# UIA native-UI control tier — Windows-only, deferred on macOS (PORTING.md).
+uia-mcp = { git = "https://github.com/AIWander/uia-mcp", tag = "v1.0.0" }
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_System_Com",
