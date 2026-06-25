@@ -1,15 +1,24 @@
 [package]
-name = "hands"
-version = "1.0.1"
+name = "happle"
+version = "0.1.0-alpha"
 edition = "2021"
-description = "AI-Hands MCP server — browser automation + Windows UIA + vision/OCR."
+description = "Happle — macOS-native multi-layer desktop automation for AI agents. Apple port of AI-Hands (browser CDP + macOS Accessibility + vision/OCR)."
 license = "Apache-2.0"
-repository = "https://github.com/AIWander/AI-Hands"
-keywords = ["cpc", "mcp", "browser", "automation", "windows"]
+repository = "https://github.com/AIWander/Happle"
+keywords = ["cpc", "mcp", "browser", "automation", "macos"]
 categories = ["command-line-utilities", "development-tools", "web-programming"]
 
+# ── PORT STATUS ──────────────────────────────────────────────────────────────
+# Happle is the macOS/Apple-Silicon port of AI-Hands (github.com/AIWander/AI-Hands).
+# This repo starts as a byte-for-byte clone of AI-Hands v1.0.1 (the Windows build)
+# and is being modified until it runs natively on macOS. See PORTING.md for the
+# full Windows→macOS mapping and checklist. The Windows build still compiles today;
+# the macOS surgery (UIA → Accessibility AXUIElement, PrintWindow → CGWindowList,
+# `windows` crate → objc2/cocoa) is tracked in PORTING.md.
+# ─────────────────────────────────────────────────────────────────────────────
+
 [[bin]]
-name = "hands"
+name = "happle"
 path = "src/main.rs"
 
 [dependencies]
@@ -57,7 +66,9 @@ libloading = "0.8"
 [dev-dependencies]
 tempfile = "3"
 
-# Windows API for combo tools (drag, etc.)
+# Windows API for combo tools (drag, etc.) — retained so the Windows build keeps
+# compiling during the port. Remove once the macOS path is fully wired and Windows
+# is no longer a Happle target (or keep for a true cross-platform single binary).
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [
     "Win32_Foundation",
@@ -69,3 +80,16 @@ windows = { version = "0.58", features = [
     "Win32_Graphics_Gdi",
     "Win32_Storage_Xps",
 ]}
+
+# ── macOS port target (PORTING.md) ───────────────────────────────────────────
+# Uncomment + wire as the macOS accessibility / window / input layer lands.
+# These replace the Windows `windows` crate + uia-mcp dependency on Apple.
+# [target.'cfg(target_os = "macos")'.dependencies]
+# objc2 = "0.5"                         # Objective-C runtime bindings
+# objc2-app-kit = "0.2"                # NSWorkspace, NSRunningApplication, window mgmt
+# objc2-foundation = "0.2"            # NSString, NSArray, NSDictionary bridging
+# accessibility = "0.1"                # AXUIElement accessibility tree (UIA equivalent)
+# accessibility-sys = "0.1"           # raw AX* FFI if the high-level crate is insufficient
+# core-graphics = "0.23"              # CGWindowListCreateImage (PrintWindow equivalent)
+# core-foundation = "0.9"             # CFType plumbing
+# ─────────────────────────────────────────────────────────────────────────────

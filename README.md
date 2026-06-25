@@ -1,14 +1,26 @@
-# AI-Hands — Multi-Layer Desktop Automation for AI Agents
+# Happle — macOS-Native Multi-Layer Desktop Automation for AI Agents
 
-[![CI](https://github.com/AIWander/AI-Hands/actions/workflows/ci.yml/badge.svg)](https://github.com/AIWander/AI-Hands/actions/workflows/ci.yml)
+> ### 🍎 PORT IN PROGRESS — scaffold stage
+> **Happle is the macOS / Apple-Silicon port of [AI-Hands](https://github.com/AIWander/AI-Hands).**
+> This repo begins as a byte-for-byte clone of AI-Hands **v1.0.1** (the shipping Windows build)
+> and is being modified until it runs natively on macOS. Right now it carries the Windows codebase
+> verbatim as the template to diverge *from*. The macOS surgery — UIA → Accessibility (`AXUIElement`),
+> `PrintWindow` → `CGWindowListCreateImage`, the `windows` crate → `objc2`/`cocoa` — is tracked in
+> **[PORTING.md](PORTING.md)**. Do not expect a working macOS binary yet.
 
-**AI-Hands** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control through three automation tiers — not just pixel-guessing from screenshots.
+**Happle** is a Rust MCP (Model Context Protocol) server that gives AI agents full desktop control on macOS through three automation tiers — not just pixel-guessing from screenshots:
 
-> **Renamed from [AIWander/hands](https://github.com/AIWander/hands) on 2026-05-15.** Same Rust codebase, fresh versioning. The `hands.exe` binary name and `hands:*` MCP tool prefix are unchanged — existing MCP configs in Claude Desktop, Claude Code, Cowork, Codex CLI, Gemini CLI, and LM Studio keep working without edits.
+| Tier | Windows (AI-Hands) | macOS (Happle target) |
+|------|--------------------|------------------------|
+| **Browser** | chromiumoxide CDP | chromiumoxide CDP *(cross-platform — carries over as-is)* |
+| **Native UI** | Windows UI Automation (UIA) | macOS Accessibility API (`AXUIElement`) |
+| **Vision** | Tesseract OCR + template match | Tesseract OCR + template match *(cross-platform)* + optional Apple Vision framework |
 
-See the [`examples/`](examples/) directory for sample configurations and walkthroughs.
+The browser and vision tiers are already cross-platform. The native-UI tier is the bulk of the port.
 
-**Part of [CPC](https://github.com/AIWander) (Copy Paste Compute)** — a multi-agent AI orchestration platform. Related repos: [manager](https://github.com/AIWander/manager) · [local](https://github.com/AIWander/local) · [workflow](https://github.com/AIWander/workflow)
+See [PORTING.md](PORTING.md) for the full Windows→macOS mapping and the porting checklist.
+
+**Part of [CPC](https://github.com/AIWander) (Copy Paste Compute)** — a multi-agent AI orchestration platform. Forked from [AI-Hands](https://github.com/AIWander/AI-Hands); sibling Apple port [Papple](https://github.com/AIWander/Papple) (dev/ops). Related repos: [manager](https://github.com/AIWander/manager) · [workflow](https://github.com/AIWander/workflow)
 
 ## What's New in v1.0.1
 
