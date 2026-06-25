@@ -1,0 +1,33 @@
+name: macOS Build (port)
+
+# Happle macOS port CI. At scaffold stage this build is EXPECTED to fail —
+# the failure log is the porting worklist (which Windows-only calls need
+# cfg-gating for macOS). Drive it red → green through PORTING.md Phase 1.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-arm64:
+    name: cargo check (Apple Silicon / aarch64-apple-darwin)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust + target info
+        run: |
+          rustc --version
+          echo "target: aarch64-apple-darwin (native on macos-14)"
+
+      - name: cargo check (scaffold expected to fail — log = worklist)
+        run: cargo check --target aarch64-apple-darwin --workspace
