@@ -127,11 +127,14 @@ both builds green during the transition.
 - [x] README reframed as the Apple port
 - [x] PORTING.md (this file)
 
-### Phase 1 — make it build on macOS (no functionality yet)
-- [ ] Move all `uia-mcp` / `windows`-crate calls behind `#[cfg(windows)]`
-- [ ] Add `native::macos` + `capture::macos` modules that **compile to stubs** (return "not implemented on macOS yet")
-- [ ] `cargo build --target aarch64-apple-darwin` succeeds (browser + vision tiers live, native tier stubbed)
-- [ ] CI `macos-14` job green on the stub build
+### Phase 1 — make it build on macOS (DONE 2026-06-25 — CI green)
+- [x] Move all `uia-mcp` / `windows`-crate calls behind `#[cfg(windows)]` (uia_shim wrapper + atomic.rs macOS `.call()` stub + cfg-gated `uia` module)
+- [x] **Vision tier ported** — vision-core v0.3.0 is cross-platform: screenshot (the `screenshots` crate) works on macOS; OCR uses the ONNX/Paddle backend off-Windows or a stub. This is the troubleshooting "eyes" Joseph wanted kept.
+- [x] Browser tier intact — browser-mcp v0.2.0 with `default-features = false` (drops the Windows-only inline OCR transitive)
+- [x] UIA native-control tier deferred — `uia_shim` returns a graceful "UIA is Windows-only; deferred on macOS" at every call site
+- [x] `cargo check --target aarch64-apple-darwin` succeeds (browser + vision live, UIA tier stubbed)
+- [x] CI `macos-14` job **GREEN**
+- [ ] (later) `cargo build` full release + ship a macOS binary once Phase 2/3 add real functionality
 
 ### Phase 2 — native UI tier
 - [ ] `AXUIElement` tree walk → `get_state` equivalent
