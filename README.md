@@ -81,7 +81,71 @@ The entries below are pre-rename `AIWander/hands` lineage notes kept for context
 
 </details>
 
-## Install
+## macOS Install (alpha)
+
+> ⚠️ **Alpha, untested on hardware.** Happle compiles green on Apple Silicon CI, but
+> no one has run it on a real Mac yet — you may be the first. Browser + screenshot
+> work; native-app control (UIA) is deferred (returns "deferred on macOS").
+
+### Option A — download the prebuilt binary (recommended)
+
+1. Grab your arch from [**Releases**](https://github.com/AIWander/Happle/releases/latest):
+   - Apple Silicon (M-series): `happle-vX.Y.Z-aarch64-apple-darwin`
+   - Intel: `happle-vX.Y.Z-x86_64-apple-darwin`
+2. Make it runnable and place it on your PATH:
+   ```bash
+   chmod +x happle-*-apple-darwin
+   sudo mv happle-*-apple-darwin /usr/local/bin/happle
+   xattr -d com.apple.quarantine /usr/local/bin/happle 2>/dev/null || true   # clear Gatekeeper "unverified" flag
+   happle --version   # sanity check
+   ```
+
+### Option B — build from source (needed for OCR)
+
+```bash
+# Rust toolchain: https://rustup.rs
+git clone https://github.com/AIWander/Happle && cd Happle
+cargo build --release                 # browser + screenshot; OCR returns a stub
+# …or, to enable on-device OCR (pulls ONNX Runtime):
+cargo build --release --features onnx
+sudo cp target/release/happle /usr/local/bin/happle
+```
+
+### Register as an MCP server
+
+**Claude Desktop** — edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "happle": { "command": "/usr/local/bin/happle", "args": [] }
+  }
+}
+```
+Then restart Claude Desktop.
+
+**Codex / other MCP hosts** — register `/usr/local/bin/happle` as a **stdio** MCP server in
+that host's config (Codex: add it to your `mcp_servers` config block). Happle speaks the
+standard MCP stdio protocol, so any MCP-capable agent can drive it.
+
+### Grant macOS permissions
+
+The screenshot tools need **Screen Recording** permission for the *host app* (the terminal,
+Claude Desktop, or Codex that launches Happle):
+**System Settings → Privacy & Security → Screen Recording → enable your host app**, then restart it.
+(No Accessibility permission is needed in this alpha — the tier that would use it is deferred.)
+
+### What works on macOS today
+
+| Tool family | macOS status |
+|-------------|--------------|
+| `browser_*` (navigate, click, extract, network log, …) | ✅ works (Chrome via CDP) |
+| `vision_screenshot`, screen capture | ✅ works (needs Screen Recording perm) |
+| `vision_ocr` | ⚠️ stub unless built `--features onnx` |
+| `uia_*` / native-app control / `vision_screenshot_hidden_window` | ❌ returns "deferred on macOS" — see [MACOS_CONTROL_SPEC.md](MACOS_CONTROL_SPEC.md) |
+
+---
+
+## Install (Windows — via AI-Hands)
 
 > **winget submission pending.** The `microsoft/winget-pkgs` PR is in flight — once it merges, `winget install AIWander.AI-Hands` works against the published index. Until then, [`installers/winget/manifests/`](installers/winget/manifests/) in this repo is the source of truth (use the `--manifest` form below). The manual download path is unaffected.
 

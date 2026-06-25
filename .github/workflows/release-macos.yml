@@ -1,0 +1,72 @@
+name: macOS Release
+
+# Builds real Happle binaries for macOS and attaches them to the GitHub release
+# when a v* tag is pushed. Apple Silicon (aarch64) + Intel (x86_64).
+#
+# ALPHA: this ships the browser + vision (screenshot) tiers. The UIA native-UI
+# control tier is deferred on macOS (returns "deferred on macOS" at runtime).
+# Default build = no ONNX, so vision_ocr returns a stub; vision_screenshot works.
+# Build from source with --features onnx for OCR. See MACOS_CONTROL_SPEC.md.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-apple-darwin   # Apple Silicon (M1/M2/M3/M4)
+          - x86_64-apple-darwin    # Intel Macs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage binary
+        run: |
+          BIN="target/${{ matrix.target }}/release/happle"
+          OUT="happle-${{ github.ref_name }}-${{ matrix.target }}"
+          cp "$BIN" "$OUT"
+          chmod +x "$OUT"
+          shasum -a 256 "$OUT" | tee "$OUT.sha256"
+          echo "ASSET=$OUT" >> "$GITHUB_ENV"
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET }}.sha256
+          fail_on_unmatched_files: true
+          prerelease: true
+          body: |
+            **Happle ${{ github.ref_name }} — ALPHA (macOS, untested on hardware).**
+
+            macOS port of AI-Hands. Ships the **browser** tier (CDP automation) and the
+            **vision/screenshot** tier (the troubleshooting "eyes"). The **UIA native-UI
+            control** tier is deferred on macOS — those tools return "UIA is Windows-only;
+            deferred on macOS" at runtime. See PORTING.md / MACOS_CONTROL_SPEC.md.
+
+            - `happle-${{ github.ref_name }}-aarch64-apple-darwin` — Apple Silicon
+            - `happle-${{ github.ref_name }}-x86_64-apple-darwin` — Intel
+            - OCR (`vision_ocr`) returns a stub in this build; `vision_screenshot` works.
+              For OCR, build from source with `--features onnx`.
+
+            Install: see the **macOS install** section of the README.
+            This binary has NOT been run on real Mac hardware — you may be the first.
+            File issues at https://github.com/AIWander/Happle/issues
