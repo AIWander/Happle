@@ -525,7 +525,7 @@ async fn dispatch_underlying_tool(
     browser: &browser_mcp::browser::SharedBrowser,
 ) -> Option<Value> {
     if tool.starts_with("uia_") {
-        let result = uia_lib::handle_tool_call(tool, args);
+        let result = crate::uia_shim::handle_tool_call(tool, args);
         // Check if uia_lib recognized the tool (vs returning "Unknown tool")
         if result
             .get("error")

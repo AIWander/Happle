@@ -35,6 +35,36 @@ mod security;
 mod stealth;
 mod uia;
 
+/// UIA shim — uia-mcp (`uia_lib`) is the Windows-only native-UI control tier,
+/// deferred on macOS Happle (Joseph: "it's ok to not control mac"). These thin
+/// wrappers let every call site compile cross-platform: on Windows they forward
+/// to `uia_lib`; off-Windows they return a graceful "deferred on macOS" result
+/// (and an empty tool list), so the browser + vision tiers keep working.
+pub(crate) mod uia_shim {
+    use serde_json::{json, Value};
+
+    #[cfg(windows)]
+    pub fn handle_tool_call(tool: &str, args: &Value) -> Value {
+        uia_lib::handle_tool_call(tool, args)
+    }
+    #[cfg(not(windows))]
+    pub fn handle_tool_call(_tool: &str, _args: &Value) -> Value {
+        json!({
+            "success": false,
+            "error": "UIA native-UI control is Windows-only; deferred on macOS Happle (browser + vision tiers are available)"
+        })
+    }
+
+    #[cfg(windows)]
+    pub fn get_tool_definitions() -> Vec<Value> {
+        uia_lib::get_tool_definitions()
+    }
+    #[cfg(not(windows))]
+    pub fn get_tool_definitions() -> Vec<Value> {
+        Vec::new()
+    }
+}
+
 #[cfg(windows)]
 use windows::{
     core::PCWSTR,
@@ -135,7 +165,7 @@ fn get_all_tool_definitions() -> Vec<Value> {
     // Happle. On non-Windows the tool list simply omits the uia_* tools — the
     // browser + vision tiers below remain fully available.
     #[cfg(windows)]
-    for mut t in uia_lib::get_tool_definitions() {
+    for mut t in uia_shim::get_tool_definitions() {
         uia::augment_tool_definition(&mut t);
         tools.push(t);
     }
@@ -1046,7 +1076,7 @@ async fn handle_window_screenshot(args: &Value) -> Value {
     }
 
     // Original path: focus window, then screen-capture
-    let focus_result = uia_lib::handle_tool_call("uia_focus_window", &json!({"title": title}));
+    let focus_result = uia_shim::handle_tool_call("uia_focus_window", &json!({"title": title}));
     if !focus_result
         .get("success")
         .and_then(|v| v.as_bool())
@@ -1352,7 +1382,7 @@ fn find_window_by_title(title: &str) -> Result<(Value, HWND), Value> {
         }));
     }
 
-    let windows_result = uia_lib::handle_tool_call("uia_list_window", &json!({}));
+    let windows_result = uia_shim::handle_tool_call("uia_list_window", &json!({}));
     let windows = match windows_result
         .get("windows")
         .and_then(|value| value.as_array())
@@ -1769,7 +1799,7 @@ fn handle_uia_app_launch(args: &Value) -> Value {
 
     send_virtual_key(VK_LWIN);
     std::thread::sleep(std::time::Duration::from_millis(250));
-    let type_result = uia_lib::handle_tool_call("uia_type_text", &json!({ "text": name }));
+    let type_result = uia_shim::handle_tool_call("uia_type_text", &json!({ "text": name }));
     std::thread::sleep(std::time::Duration::from_millis(100));
     send_virtual_key(VK_RETURN);
 
@@ -1813,7 +1843,7 @@ fn handle_type_into_window(args: &Value) -> Value {
     let delay = args.get("delay_ms").and_then(|v| v.as_u64()).unwrap_or(100);
 
     // Focus
-    let focus_result = uia_lib::handle_tool_call("uia_focus_window", &json!({"title": title}));
+    let focus_result = uia_shim::handle_tool_call("uia_focus_window", &json!({"title": title}));
     if !focus_result
         .get("success")
         .and_then(|v| v.as_bool())
@@ -1833,12 +1863,12 @@ fn handle_type_into_window(args: &Value) -> Value {
         args.get("click_x").and_then(|v| v.as_i64()),
         args.get("click_y").and_then(|v| v.as_i64()),
     ) {
-        uia_lib::handle_tool_call("uia_click", &json!({"x": x, "y": y}));
+        uia_shim::handle_tool_call("uia_click", &json!({"x": x, "y": y}));
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
 
     // Type
-    let type_result = uia_lib::handle_tool_call("uia_type_text", &json!({"text": text}));
+    let type_result = uia_shim::handle_tool_call("uia_type_text", &json!({"text": text}));
 
     json!({
         "success": true,
@@ -2862,7 +2892,7 @@ async fn handle_element_drag(args: &Value, browser: &browser_mcp::browser::Share
 
 fn handle_hands_status() -> Value {
     let uia_ok = {
-        let result = uia_lib::handle_tool_call("uia_list_windows", &json!({}));
+        let result = uia_shim::handle_tool_call("uia_list_windows", &json!({}));
         result
             .get("success")
             .and_then(|v| v.as_bool())
@@ -3625,14 +3655,14 @@ fn handle_uia_batch(args: &Value) -> Value {
 
 /// Dispatch a single UIA primitive to the Windows-only uia-mcp backend.
 ///
-/// On Windows this forwards to `uia_lib::handle_tool_call`. On macOS / non-Windows
+/// On Windows this forwards to `uia_shim::handle_tool_call`. On macOS / non-Windows
 /// the UIA native-control tier is deferred on Happle, so this returns a non-fatal
 /// JSON error. Combo/meta tools that mix UIA with browser+vision rungs use this so
 /// the UIA rung degrades gracefully while the vision/OCR rungs keep working.
 #[cfg(windows)]
 #[inline]
 fn uia_call(name: &str, args: &Value) -> Value {
-    uia_lib::handle_tool_call(name, args)
+    uia_shim::handle_tool_call(name, args)
 }
 
 #[cfg(not(windows))]
@@ -3651,7 +3681,7 @@ fn dispatch_uia_tool(name: &str, args: &Value) -> Value {
         "uia_click" => uia::handle_click(args),
         "uia_type" | "uia_type_text" => uia::handle_type(args),
         #[cfg(windows)]
-        _ => uia_lib::handle_tool_call(name, args),
+        _ => uia_shim::handle_tool_call(name, args),
         // macOS / non-Windows: UIA native-control tier deferred on Happle.
         #[cfg(not(windows))]
         _ => json!({
