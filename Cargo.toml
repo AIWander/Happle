@@ -32,7 +32,11 @@ anyhow = "1.0"
 chrono = "0.4"
 
 # Browser lib (CDP, scraping, smart_browse, etc.)
-browser-mcp = { git = "https://github.com/AIWander/browser-mcp", tag = "v0.1.1" }
+# default-features = false drops browser-mcp's inline page-OCR (its `ocr` feature),
+# which transitively pulled the old josephwander-arch/vision-core v0.1.0 (Windows-only,
+# breaks the macOS build). Happle does OCR through its own vision-core v0.3.0 dep
+# instead, so nothing is lost — and browser-mcp itself is cross-platform.
+browser-mcp = { git = "https://github.com/AIWander/browser-mcp", tag = "v0.2.0", default-features = false }
 
 # Vision (shared library - screenshot, OCR, diff, template match)
 # v0.3.0 is cross-platform: screenshot works on macOS; OCR uses the ONNX/Paddle
