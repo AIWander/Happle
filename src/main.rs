@@ -131,6 +131,10 @@ fn get_all_tool_definitions() -> Vec<Value> {
     }
 
     // --- UIA tools (from uia_lib) ---
+    // The UIA native-control tier is Windows-only (uia-mcp); deferred on macOS
+    // Happle. On non-Windows the tool list simply omits the uia_* tools — the
+    // browser + vision tiers below remain fully available.
+    #[cfg(windows)]
     for mut t in uia_lib::get_tool_definitions() {
         uia::augment_tool_definition(&mut t);
         tools.push(t);
@@ -745,7 +749,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
 
     // If window_title provided, focus that window first
     if let Some(title) = window_title {
-        uia_lib::handle_tool_call("uia_focus_window", &json!({"title": title}));
+        uia_call("uia_focus_window", &json!({"title": title}));
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
@@ -762,7 +766,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
 
     // If text not found and no explicit window_title was given, try other windows
     if !found_text && window_title.is_none() {
-        let win_list = uia_lib::handle_tool_call("uia_list_windows", &json!({}));
+        let win_list = uia_call("uia_list_windows", &json!({}));
         if let Some(windows) = win_list.get("windows").and_then(|v| v.as_array()) {
             // Filter out system/desktop windows
             let skip_classes = [
@@ -780,7 +784,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
                     continue;
                 }
                 // Try focusing this window
-                uia_lib::handle_tool_call("uia_focus_window", &json!({"title": title_val}));
+                uia_call("uia_focus_window", &json!({"title": title_val}));
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
                 let retry_ocr =
@@ -804,7 +808,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
     }
 
     // Step 2: Use UIA to find the element and click it
-    let find_result = uia_lib::handle_tool_call(
+    let find_result = uia_call(
         "uia_find_element",
         &json!({
             "name": text,
@@ -826,7 +830,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
             ) {
                 let click_x = cx + offset_x;
                 let click_y = cy + offset_y;
-                let click_result = uia_lib::handle_tool_call(
+                let click_result = uia_call(
                     "uia_click",
                     &json!({
                         "x": click_x,
@@ -898,7 +902,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
             }
 
             if let (Some(cx), Some(cy)) = (match_x, match_y) {
-                let click_result = uia_lib::handle_tool_call(
+                let click_result = uia_call(
                     "uia_click",
                     &json!({
                         "x": cx,
@@ -940,7 +944,7 @@ async fn handle_find_and_click(args: &Value) -> Value {
 async fn handle_read_screen_text(args: &Value) -> Value {
     // Optionally focus window first
     if let Some(title) = args.get("window_title").and_then(|v| v.as_str()) {
-        uia_lib::handle_tool_call("uia_focus_window", &json!({"title": title}));
+        uia_call("uia_focus_window", &json!({"title": title}));
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
     }
 
@@ -965,7 +969,7 @@ async fn handle_wait_for_visual(args: &Value) -> Value {
 
     // Focus window if specified
     if let Some(title) = args.get("window_title").and_then(|v| v.as_str()) {
-        uia_lib::handle_tool_call("uia_focus_window", &json!({"title": title}));
+        uia_call("uia_focus_window", &json!({"title": title}));
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
     }
 
@@ -3619,12 +3623,42 @@ fn handle_uia_batch(args: &Value) -> Value {
     json!({"success": true, "results": results, "total": actions.len(), "executed": results.len()})
 }
 
+/// Dispatch a single UIA primitive to the Windows-only uia-mcp backend.
+///
+/// On Windows this forwards to `uia_lib::handle_tool_call`. On macOS / non-Windows
+/// the UIA native-control tier is deferred on Happle, so this returns a non-fatal
+/// JSON error. Combo/meta tools that mix UIA with browser+vision rungs use this so
+/// the UIA rung degrades gracefully while the vision/OCR rungs keep working.
+#[cfg(windows)]
+#[inline]
+fn uia_call(name: &str, args: &Value) -> Value {
+    uia_lib::handle_tool_call(name, args)
+}
+
+#[cfg(not(windows))]
+#[inline]
+fn uia_call(name: &str, _args: &Value) -> Value {
+    json!({
+        "success": false,
+        "error": "UIA native-UI control is Windows-only; deferred on macOS Happle (browser + vision tiers are available)",
+        "tool": name
+    })
+}
+
 fn dispatch_uia_tool(name: &str, args: &Value) -> Value {
     match name {
         "uia_get_state" => uia::handle_get_state(args),
         "uia_click" => uia::handle_click(args),
         "uia_type" | "uia_type_text" => uia::handle_type(args),
+        #[cfg(windows)]
         _ => uia_lib::handle_tool_call(name, args),
+        // macOS / non-Windows: UIA native-control tier deferred on Happle.
+        #[cfg(not(windows))]
+        _ => json!({
+            "success": false,
+            "error": "UIA native-UI control is Windows-only; deferred on macOS Happle (browser + vision tiers are available)",
+            "tool": name
+        }),
     }
 }
 

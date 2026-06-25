@@ -1,11 +1,35 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::too_many_arguments)] // UIA automation functions require many params
 
+#[cfg(windows)]
 use std::{collections::HashMap, thread, time::Duration};
 
 use serde::Serialize;
 use serde_json::{json, Value};
+
+#[cfg(windows)]
 use uia_lib::{Point, Rect};
+
+// macOS / non-Windows: the UIA native-control tier (uia-mcp) is Windows-only and
+// deferred on Happle. `SnapshotNode` below is defined on all platforms (it derives
+// Serialize), so it needs `Point`/`Rect` in scope — but it is only ever *constructed*
+// inside `#[cfg(windows)]` code. Provide local plain-data equivalents off-Windows so
+// the type compiles without pulling the Windows-only uia-mcp crate.
+#[cfg(not(windows))]
+#[derive(Clone, Copy, Serialize)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+#[cfg(not(windows))]
+#[derive(Clone, Copy, Serialize)]
+struct Rect {
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+}
 
 #[cfg(windows)]
 mod ref_cache;
@@ -235,8 +259,11 @@ pub fn handle_click(args: &Value) -> Value {
 }
 
 #[cfg(not(windows))]
-pub fn handle_click(args: &Value) -> Value {
-    uia_lib::handle_tool_call("uia_click", args)
+pub fn handle_click(_args: &Value) -> Value {
+    json!({
+        "success": false,
+        "error": "UIA native-UI control is Windows-only; deferred on macOS Happle (browser + vision tiers are available)"
+    })
 }
 
 #[cfg(windows)]
@@ -291,8 +318,11 @@ pub fn handle_type(args: &Value) -> Value {
 }
 
 #[cfg(not(windows))]
-pub fn handle_type(args: &Value) -> Value {
-    uia_lib::handle_tool_call("uia_type_text", args)
+pub fn handle_type(_args: &Value) -> Value {
+    json!({
+        "success": false,
+        "error": "UIA native-UI control is Windows-only; deferred on macOS Happle (browser + vision tiers are available)"
+    })
 }
 
 #[cfg(windows)]

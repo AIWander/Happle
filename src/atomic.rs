@@ -85,9 +85,25 @@ macro_rules! uia_tool {
                 $name
             }
 
+            #[cfg(windows)]
             #[inline(always)]
             fn call(&self, args: &Value) -> Value {
                 uia_lib::handle_tool_call($name, args)
+            }
+
+            // macOS / non-Windows: the UIA native-control tier is deferred on
+            // Happle (Joseph: "it's ok to not control mac"). The ZST type and
+            // every meta-tool call site still compile; the call returns a clear
+            // runtime message so the browser/vision rungs of each meta-tool keep
+            // working while the UIA rung degrades gracefully.
+            #[cfg(not(windows))]
+            #[inline(always)]
+            fn call(&self, _args: &Value) -> Value {
+                serde_json::json!({
+                    "success": false,
+                    "error": "UIA native-UI control is Windows-only; deferred on macOS Happle (browser + vision tiers are available)",
+                    "tool": $name
+                })
             }
         }
     };
