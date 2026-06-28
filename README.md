@@ -448,4 +448,4 @@ Copyright 2026 Joseph Wander.
 
 Joseph Wander
 - GitHub: [github.com/AIWander](https://github.com/AIWander/)
-- Email: [josephwander@gmail.com](mailto:josephwander@gmail.com)
+- Email: [protipsinc@gmail.com](mailto:protipsinc@gmail.com)
